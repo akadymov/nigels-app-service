@@ -1,5 +1,7 @@
-from app import db
 from datetime import datetime
+from app import db, login
+from flask_login import UserMixin
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 connections = db.Table(
@@ -9,12 +11,18 @@ connections = db.Table(
 )
 
 
-class User(db.Model):
+class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
-    email = db.Column(db.String(120), index=True, unique=True)
+    email = db.Column(db.String(120), index=True, unique=True, nullable=True)
     password_hash = db.Column(db.String(128))
     rooms = db.relationship('Room', backref='host', lazy='dynamic')
+    last_seen = db.Column(db.DateTime, default=datetime.utcnow)
+    facebook_pic = db.Column(db.String(128), nullable=True)
+    registered = db.Column(db.DateTime)
+    about_me = db.Column(db.String(140), nullable=True)
+    social_id = db.Column(db.String(64), unique=True, nullable=True)
+    preferred_language = db.Column(db.String(6), default='en')
     connected_rooms_bad = db.relationship(
         'Room',
         secondary=connections,
@@ -22,11 +30,22 @@ class User(db.Model):
     )
 
     def __repr__(self):
-        return '<User {} (email: {})>'.format(self.username, self.email)
+        return '<User {}>'.format(self.username)
 
     def is_connected_to_room(self, room):
         return self.connected_rooms.filter(
             connections.c.room_id == room.id).count() > 0
+
+    def set_password(self, password):
+        self.password_hash = generate_password_hash(password)
+
+    def check_password(self, password):
+        return check_password_hash(self.password_hash, password)
+
+
+@login.user_loader
+def load_user(id):
+    return User.query.get(int(id))
 
 
 class Room(db.Model):

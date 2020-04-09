@@ -13,7 +13,7 @@ Getting started:
 Use 'export' instead 'set' in Linux-based OS. All config variables can be found in /config.py
 
 3. Create Sqlite db with flask migrate and sqlalchemy. Use following commands:
-    $ mkdir migrations
+    $ flask db init
     $ flask db migrate
     $ flask db upgrade
 This will create /migrations folder and /app.db file. 

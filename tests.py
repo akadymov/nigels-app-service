@@ -1,7 +1,7 @@
 import unittest
 from app import app, db
 from app.models import User, Room
-from app.routes import get_rooms
+from app.routes import index
 
 
 class UserModelCase(unittest.TestCase):
