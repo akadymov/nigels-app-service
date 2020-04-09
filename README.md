@@ -3,6 +3,9 @@ Web-services for nigels card game application. Created with Flask framework.
 Requirements and blueprints: https://docs.google.com/spreadsheets/d/117oYt6tzSbarLFpdtWTk-ohP1Usm7WvgBH-RtXKfbB4/edit?usp=sharing
 
 
+Work In Progress!!!
+
+
 Getting started:
 
 1. Install all packages from requirements.txt. You can use command:
