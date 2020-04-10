@@ -9,7 +9,7 @@ class Config(object):
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     OAUTH_CREDENTIALS = {
         'facebook': {
-            'id': '228210501623708',
-            'secret': '6f367200a1c8d25d0d502d3cf0676b2b'
+            'id': os.environ.get('facebook_id'),
+            'secret': os.environ.get('facebook_secret')
         }
     }
