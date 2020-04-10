@@ -1,4 +1,5 @@
-from flask import render_template, flash, redirect, url_for, request, jsonify
+# -*- coding: utf-8 -*-
+from flask import render_template, flash, redirect, url_for, request, jsonify, abort
 from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.urls import url_parse
 from app import app, db
@@ -6,6 +7,74 @@ from app.forms import LoginForm, RegistrationForm
 from app.models import User, Room
 from app.social_login import OAuthSignIn
 from datetime import datetime
+import re
+
+
+@app.route('/user', methods=['GET', 'POST'])
+def new_user():
+    username = request.json.get('username')
+    email = request.json.get('email')
+    preferred_lang = request.json.get('preferred_lang') or 'en'
+    password = request.json.get('password')
+    last_seen = datetime.utcnow()
+    registered = datetime.utcnow()
+    if username is None or \
+            password is None or \
+            email is None:
+        abort(400, 'Missing mandatory arguments (username, password or email)!')
+    if not re.match(app.config['USERNAME_REGEXP'], password):
+        abort(400, 'Bad username!')
+    if not re.match(app.config['EMAIL_REGEXP'], email):
+        abort(400, 'Bad email!')
+    if not re.match(app.config['PASSWORD_REGEXP'], password):
+        abort(400, 'Password does not satisfy security requirements!')
+    if User.query.filter_by(username=username).first() is not None:
+        abort(400, 'User with specified username already exists!')
+    if User.query.filter_by(email=email).first() is not None:
+        abort(400, 'User with specified email already exists!')
+    if preferred_lang not in ['ru', 'en']:
+        abort(400, 'Only ru or en languages are supported!')
+    user = User(
+        username=username,
+        email=email,
+        preferred_language=preferred_lang,
+        last_seen=last_seen,
+        registered=registered
+    )
+    user.set_password(password)
+    db.session.add(user)
+    db.session.commit()
+    return \
+        jsonify({
+            'username': user.username,
+            'email': user.email,
+            'preferred_lang': user.preferred_language,
+            'registered': user.registered
+        }), \
+        201, \
+        {'Location': 'TBD'}
+        # {'Location': url_for('get_user', id=user.id, _external=True)}
+
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if current_user.is_authenticated:
+        return redirect(url_for('index'))
+    form = RegistrationForm()
+    if form.validate_on_submit():
+        user = User(
+            username=form.username.data,
+            email=form.email.data,
+            last_seen=datetime.utcnow(),
+            registered=datetime.utcnow(),
+            preferred_language=form.preferred_language.data
+        )
+        user.set_password(form.password.data)
+        db.session.add(user)
+        db.session.commit()
+        flash('Congratulations, you are now a registered user!')
+        return redirect(url_for('login'))
+    return render_template('register.html', title='Register', form=form)
 
 
 @app.before_request
@@ -129,24 +198,3 @@ def login():
 def logout():
     logout_user()
     return redirect(url_for('index'))
-
-
-@app.route('/register', methods=['GET', 'POST'])
-def register():
-    if current_user.is_authenticated:
-        return redirect(url_for('index'))
-    form = RegistrationForm()
-    if form.validate_on_submit():
-        user = User(
-            username=form.username.data,
-            email=form.email.data,
-            last_seen=datetime.utcnow(),
-            registered=datetime.utcnow(),
-            preferred_language=form.preferred_language.data
-        )
-        user.set_password(form.password.data)
-        db.session.add(user)
-        db.session.commit()
-        flash('Congratulations, you are now a registered user!')
-        return redirect(url_for('login'))
-    return render_template('register.html', title='Register', form=form)
