@@ -12,6 +12,13 @@ connections = db.Table(
 )
 
 
+players = db.Table(
+    'players',
+    db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
+    db.Column('game_id', db.Integer, db.ForeignKey('game.id'))
+)
+
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(64), index=True, unique=True)
@@ -28,6 +35,11 @@ class User(UserMixin, db.Model):
         'Room',
         secondary=connections,
         backref=db.backref('connected_users', lazy='dynamic')
+    )
+    active_games = db.relationship(
+        'Game',
+        secondary=players,
+        backref=db.backref('players', lazy='dynamic')
     )
 
     def __repr__(self):
@@ -68,8 +80,9 @@ def load_user(id):
 class Room(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     room_name = db.Column(db.String(64), index=True, unique=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True)
     created = db.Column(db.DateTime, default=datetime.utcnow)
+    games = db.relationship('Game', backref='room', lazy='dynamic')
     closed = db.Column(db.DateTime)
     connected_users_bad = db.relationship(
         'User',
@@ -89,3 +102,14 @@ class Room(db.Model):
     def is_connected(self, user):
         return self.connected_users.filter(
             connections.c.user_id == user.id).count() > 0
+
+
+class Game(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    room_id = db.Column(db.Integer, db.ForeignKey('room.id'), nullable=False, index=True)
+    started = db.Column(db.DateTime, nullable=True, default=datetime.utcnow())
+    finished = db.Column(db.DateTime, nullable=True, default=None)
+    winner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True, index=True)
+
+    def connect(self, user):
+        self.players.append(user)

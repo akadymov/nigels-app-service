@@ -5,7 +5,7 @@ from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.urls import url_parse
 from app import app, db
 from app.forms import LoginForm, RegistrationForm
-from app.models import User, Room
+from app.models import User, Room, Game
 from app.social_login import OAuthSignIn
 from datetime import datetime
 import re
@@ -18,10 +18,10 @@ def index():
 
 
 @app.route('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
-def new_user():
+def create_user():
     username = request.json.get('username')
     email = request.json.get('email')
-    preferred_lang = request.json.get('preferred_lang') or 'en'
+    preferred_lang = request.json.get('preferred_lang') or app.config['DEFAULT_LANG']
     password = request.json.get('password')
     last_seen = datetime.utcnow()
     registered = datetime.utcnow()
@@ -95,7 +95,7 @@ def post_token():
 
 
 @app.route('{base_path}/user/<username>'.format(base_path=app.config['API_BASE_PATH']), methods=['PUT'])
-def update_user(username):
+def edit_user(username):
 
     token = request.json.get('token')
     if token is None:
@@ -286,6 +286,100 @@ def get_rooms():
         })
 
     return jsonify({'rooms': rooms_json}), 200
+
+
+@app.route('{base_path}/game/start'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+def start_game():
+
+    token = request.json.get('token')
+    if token is None:
+        abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('post_token')))
+    requesting_user = User.verify_auth_token(token)
+    if requesting_user is None:
+        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('post_token')))
+    if requesting_user is None:
+        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('post_token')))
+
+    hosted_room = Room.query.filter_by(host=requesting_user, closed=None).first()
+    if not hosted_room:
+        abort(403, 'User {username} does not have open rooms! Create room by POST {create_room_url} before managing games.'.format(
+            username=requesting_user.username,
+            create_room_url=url_for('create_room')
+        ))
+    if not app.config['MIN_PLAYER_TO_START'] <= hosted_room.connected_users.count() <= app.config['MAX_PLAYER_TO_START']:
+        abort(403, 'Incorrect number of players to start ({players_count} connected to room {room_name}!'.format(
+            players_count=hosted_room.connected_users.count(),
+            room_name=hosted_room.room_name
+        ))
+    for room_game in hosted_room.games:
+        if room_game.finished is None:
+            abort(403, 'Game {game_id} is already started at {game_start} and is not finished yet! You cannot run more than one game in room at one moment!'.format(
+                game_id=room_game.id,
+                game_start=room_game.started
+            ))
+
+    g = Game(room=hosted_room)
+    db.session.add(g)
+    db.session.commit()
+
+    players_list = []
+    for player in hosted_room.connected_users.all():
+        g.connect(player)
+        players_list.append(player.username)
+
+    return jsonify({
+        'game_id': g.id,
+        'room': g.room.room_name,
+        'host': g.room.host.username,
+        'status': 'active' if g.finished is None else 'finished',
+        'started': g.started,
+        'players': players_list
+    }), 200
+
+
+@app.route('{base_path}/game/finish'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+def finish_game():
+
+    token = request.json.get('token')
+    if token is None:
+        abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('post_token')))
+    requesting_user = User.verify_auth_token(token)
+    if requesting_user is None:
+        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('post_token')))
+    if requesting_user is None:
+        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('post_token')))
+
+    hosted_room = Room.query.filter_by(host=requesting_user, closed=None).first()
+    if not hosted_room:
+        abort(403, 'User {username} does not have open rooms! Create room by POST {create_room_url} before managing games.'.format(
+            username=requesting_user.username,
+            create_room_url=url_for('create_room')
+        ))
+    active_games = []
+    for room_game in hosted_room.games:
+        if room_game.finished is None:
+            active_games.append(room_game)
+    if len(active_games) != 1:
+        abort(403, 'Room {room_name} has {active_games} active game(s)!'.format(room_name=hosted_room.room_name, active_games=len(active_games)))
+
+    g = active_games[0]
+    g.finished = datetime.utcnow()
+    db.session.commit()
+
+    players_list = []
+    for player in hosted_room.connected_users.all():
+        g.connect(player)
+        players_list.append(player.username)
+
+    return jsonify({
+        'game_id': g.id,
+        'room': g.room.room_name,
+        'host': g.room.host.username,
+        'status': 'active' if g.finished is None else 'finished',
+        'started': g.started,
+        'finished': g.finished,
+        'players': players_list
+    }), 200
 
 
 @app.route('/register', methods=['GET', 'POST'])

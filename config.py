@@ -19,3 +19,6 @@ class Config(object):
     TOKEN_LIFETIME = 600
     API_BASE_PATH = '/api/v0'
     MAX_USERS_PER_ROOM = 10
+    DEFAULT_LANG = 'en'
+    MIN_PLAYER_TO_START = 2
+    MAX_PLAYER_TO_START = 10
