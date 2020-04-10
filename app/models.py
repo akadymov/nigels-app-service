@@ -43,7 +43,7 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
-    def generate_auth_token(self, expiration=600):
+    def generate_auth_token(self):
         s = Serializer(app.config['SECRET_KEY'], expires_in=app.config['TOKEN_LIFETIME'])
         return s.dumps({'username': self.username, 'email': self.email})
 
@@ -53,9 +53,9 @@ class User(UserMixin, db.Model):
         try:
             data = s.loads(token)
         except SignatureExpired:
-            return None  # valid token, but expired
+            return None
         except BadSignature:
-            return None  # invalid token
+            return None
         user = User.query.filter_by(username=data['username']).first()
         return user
 
