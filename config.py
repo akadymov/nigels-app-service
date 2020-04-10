@@ -16,3 +16,4 @@ class Config(object):
     USERNAME_REGEXP = "^[a-zA-Z][a-zA-Z0-9-_\.]{1,20}$"
     PASSWORD_REGEXP = "(?=^.{8,}$)(?=.*[a-z])(?=.*[A-Z])(?!.*\s).*$"
     EMAIL_REGEXP = "(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
+    TOKEN_LIFETIME = 600

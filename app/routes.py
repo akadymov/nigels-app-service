@@ -49,7 +49,9 @@ def new_user():
             'username': user.username,
             'email': user.email,
             'preferred_lang': user.preferred_language,
-            'registered': user.registered
+            'registered': user.registered,
+            'last_seen': user.last_seen,
+            'about_me': user.about_me
         }), \
         201, \
         {'Location': url_for('get_user', username=username, _external=True)}
@@ -65,9 +67,62 @@ def get_user(username):
         'email': user.email,
         'preferred_lang': user.preferred_language,
         'registered': user.registered,
+        'last_seen': user.last_seen,
         'about_me': user.about_me
     }), 201
 
+
+@app.route('/user/token', methods=['POST'])
+def post_token():
+    username = request.json.get('username')
+    password = request.json.get('password')
+    user = User.query.filter_by(username=username).first()
+    if user is None or not user.check_password(str(password)):
+        abort(400, 'Invalid username or password')
+    else:
+        token = user.generate_auth_token()
+        return jsonify({
+            'token': token.decode('ascii'),
+            'expires_in': app.config['TOKEN_LIFETIME']
+        })
+
+
+@app.route('/user/<username>', methods=['PUT'])
+def update_user(username):
+    token = request.json.get('token')
+    if token is None:
+        abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('post_token')))
+    modified_user = User.query.filter_by(username=username).first()
+    if modified_user is None:
+        abort(404, 'User {username} not found!'.format(username=username))
+    requesting_user = User.verify_auth_token(token)
+    if requesting_user is None:
+        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('post_token')))
+    if modified_user != requesting_user:
+        abort(401, 'You can update only your own profile ({username})!'.format(username=str(requesting_user)))
+    email = request.json.get('email') or modified_user.email
+    about_me = request.json.get('about_me') or modified_user.about_me
+    preferred_lang = request.json.get('preferred_lang') or modified_user.preferred_language
+    if not re.match(app.config['EMAIL_REGEXP'], email):
+        abort(400, 'Bad email!')
+    conflict_user = User.query.filter_by(email=email).first()
+    if conflict_user is not None and conflict_user != modified_user:
+        abort(400, 'User with email {email} already exists!'.format(email=email))
+    if preferred_lang not in ['ru', 'en']:
+        abort(400, 'Language {lang} is not supported!'.format(lang=preferred_lang))
+    modified_user.email = email
+    modified_user.about_me = about_me
+    modified_user.preferred_language = preferred_lang
+    modified_user.last_seen = datetime.utcnow()
+    db.session.commit()
+    return jsonify({
+        'username': modified_user.username,
+        'email': modified_user.email,
+        'preferred_lang': modified_user.preferred_language,
+        'registered': modified_user.registered,
+        'last_seen': modified_user.last_seen,
+        'about_me': modified_user.about_me
+    }), 201
 
 
 @app.route('/register', methods=['GET', 'POST'])
