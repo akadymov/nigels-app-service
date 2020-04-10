@@ -70,7 +70,7 @@ class Room(db.Model):
     room_name = db.Column(db.String(64), index=True, unique=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
     created = db.Column(db.DateTime, default=datetime.utcnow)
-    finished = db.Column(db.DateTime)
+    closed = db.Column(db.DateTime)
     connected_users_bad = db.relationship(
         'User',
         secondary=connections,

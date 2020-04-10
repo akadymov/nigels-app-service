@@ -17,3 +17,5 @@ class Config(object):
     PASSWORD_REGEXP = "(?=^.{8,}$)(?=.*[a-z])(?=.*[A-Z])(?!.*\s).*$"
     EMAIL_REGEXP = "(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
     TOKEN_LIFETIME = 600
+    API_BASE_PATH = '/api/v0'
+    MAX_USERS_PER_ROOM = 10
