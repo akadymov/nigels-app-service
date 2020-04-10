@@ -10,7 +10,7 @@ from datetime import datetime
 import re
 
 
-@app.route('/user', methods=['GET', 'POST'])
+@app.route('/user', methods=['POST'])
 def new_user():
     username = request.json.get('username')
     email = request.json.get('email')
@@ -29,11 +29,11 @@ def new_user():
     if not re.match(app.config['PASSWORD_REGEXP'], password):
         abort(400, 'Password does not satisfy security requirements!')
     if User.query.filter_by(username=username).first() is not None:
-        abort(400, 'User with specified username already exists!')
+        abort(400, 'User with username {username} already exists!'.format(username=username))
     if User.query.filter_by(email=email).first() is not None:
-        abort(400, 'User with specified email already exists!')
+        abort(400, 'User with email {email} already exists!'.format(email=email))
     if preferred_lang not in ['ru', 'en']:
-        abort(400, 'Only ru or en languages are supported!')
+        abort(400, 'Language {lang} is not supported!'.format(lang=preferred_lang))
     user = User(
         username=username,
         email=email,
@@ -52,8 +52,22 @@ def new_user():
             'registered': user.registered
         }), \
         201, \
-        {'Location': 'TBD'}
-        # {'Location': url_for('get_user', id=user.id, _external=True)}
+        {'Location': url_for('get_user', username=username, _external=True)}
+
+
+@app.route('/user/<username>', methods=['GET'])
+def get_user(username):
+    user = User.query.filter_by(username=username).first()
+    if user is None:
+        abort(404, 'User {username} not found!'.format(username=username))
+    return jsonify({
+        'username': user.username,
+        'email': user.email,
+        'preferred_lang': user.preferred_language,
+        'registered': user.registered,
+        'about_me': user.about_me
+    }), 201
+
 
 
 @app.route('/register', methods=['GET', 'POST'])
