@@ -5,10 +5,11 @@ from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.urls import url_parse
 from app import app, db
 from app.forms import LoginForm, RegistrationForm
-from app.models import User, Room, Game
+from app.models import User, Room, Game, Player
 from app.social_login import OAuthSignIn
 from datetime import datetime
 import re
+import random
 
 
 @app.route('/', methods=['GET'])
@@ -195,6 +196,9 @@ def close_room(room_id):
     if target_room.host != requesting_user:
         abort(403, 'Only host can close the room!')
 
+    for game in target_room.games:
+        game.finished = datetime.utcnow()
+
     for user in target_room.connected_users:
         target_room.disconnect(user)
 
@@ -262,7 +266,6 @@ def disconnect_room(room_id):
         abort(403, 'Host cannot disconnect the room!')
 
     target_room.disconnect(requesting_user)
-    db.session.commit()
 
     return jsonify(200)
 
@@ -325,7 +328,10 @@ def start_game():
     players_list = []
     for player in hosted_room.connected_users.all():
         g.connect(player)
+        p = Player(game_id=g.id, user_id=player.id)
+        db.session.add(p)
         players_list.append(player.username)
+    db.session.commit()
 
     return jsonify({
         'game_id': g.id,
@@ -367,6 +373,7 @@ def finish_game():
     db.session.commit()
 
     players_list = []
+    db.session.commit()
     for player in hosted_room.connected_users.all():
         g.connect(player)
         players_list.append(player.username)
@@ -380,6 +387,47 @@ def finish_game():
         'finished': g.finished,
         'players': players_list
     }), 200
+
+
+@app.route('{base_path}/game/<game_id>/positions'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+def define_positions(game_id):
+
+    token = request.json.get('token')
+    if token is None:
+        abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('post_token')))
+    requesting_user = User.verify_auth_token(token)
+    if requesting_user is None:
+        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('post_token')))
+    if requesting_user is None:
+        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('post_token')))
+
+    game = Game.query.filter_by(id=game_id).first()
+    room = Room.query.filter_by(id=game.room_id).first()
+    if room.host != requesting_user:
+        abort(403, 'Only host can shuffle positions!')
+
+    players = Player.query.filter_by(game_id=game_id).all()
+    for player in players:
+        if player.position is not None:
+            abort(403, 'Positions of players are already defined in this game!')
+
+    players = game.players.all()
+    random.shuffle(players)
+    players_list = []
+    for player in players:
+        p = Player.query.filter_by(game_id=game_id,user_id=player.id).first()
+        p.position = players.index(player) + 1
+        db.session.commit()
+        players_list.append({
+            'username': User.query.filter_by(id=p.user_id).first().username,
+            'position': p.position
+        })
+
+    return jsonify({
+        'game_id': game_id,
+        'players': players_list
+    }), 200
+
 
 
 @app.route('/register', methods=['GET', 'POST'])

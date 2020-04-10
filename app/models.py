@@ -15,7 +15,7 @@ connections = db.Table(
 players = db.Table(
     'players',
     db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
-    db.Column('game_id', db.Integer, db.ForeignKey('game.id'))
+    db.Column('game_id', db.Integer, db.ForeignKey('game.id')),
 )
 
 
@@ -113,3 +113,9 @@ class Game(db.Model):
 
     def connect(self, user):
         self.players.append(user)
+
+
+class Player(db.Model):
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, primary_key=True)
+    game_id = db.Column(db.Integer, nullable=False, index=True, primary_key=True)
+    position = db.Column(db.Integer, nullable=True, default=None, index=True)
