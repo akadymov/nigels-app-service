@@ -155,6 +155,10 @@ def create_room():
             close_room_url=url_for('close_room', room_id=hosted_room.id)
         ))
 
+    connected_room = requesting_user.connected_rooms
+    if connected_room.count() > 0:
+        abort(403, 'User {username} already is connected to other room! Disconnect before creating new one.'.format(username=requesting_user.username))
+
     room_name = request.json.get('room_name')
     new_room = Room(room_name=room_name, host=requesting_user, created=datetime.utcnow())
     db.session.add(new_room)
@@ -216,6 +220,10 @@ def connect_room(room_id):
     requesting_user = User.verify_auth_token(token)
     if requesting_user is None:
         abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('post_token')))
+
+    connected_room = requesting_user.connected_rooms
+    if connected_room.count() > 0:
+        abort(403, 'User {username} already is connected to other room! Disconnect before connecting to new one.'.format(username=requesting_user.username))
 
     target_room = Room.query.filter_by(id=room_id).first()
     if target_room is None:
