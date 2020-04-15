@@ -110,6 +110,7 @@ class Game(db.Model):
     started = db.Column(db.DateTime, nullable=True, default=datetime.utcnow())
     finished = db.Column(db.DateTime, nullable=True, default=None)
     winner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True, index=True)
+    hands = db.relationship('Hand', backref='game', lazy='dynamic')
 
     def connect(self, user):
         self.players.append(user)
@@ -119,3 +120,27 @@ class Player(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, primary_key=True)
     game_id = db.Column(db.Integer, nullable=False, index=True, primary_key=True)
     position = db.Column(db.Integer, nullable=True, default=None, index=True)
+
+
+class Hand(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    game_id = db.Column(db.Integer, db.ForeignKey('game.id'), nullable=False, index=True, primary_key=True)
+    serial_no = db.Column(db.Integer, primary_key=True)
+    trump = db.Column(db.String(1), nullable=True)
+    cards_per_player = db.Column(db.Integer, nullable=True)
+    starting_player = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    is_closed = db.Column(db.Integer, nullable=False, default=0)
+
+
+class DealtCards(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    hand_id = db.Column(db.Integer, db.ForeignKey('hand.id'), nullable=False)
+    player_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    card_id = db.Column(db.String(2), nullable=False)
+
+
+class HandScore(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    hand_id = db.Column(db.Integer, db.ForeignKey('hand.id'))
+    bet_size = db.Column(db.Integer)
+    player_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
