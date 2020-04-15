@@ -450,7 +450,23 @@ def deal_cards(game_id):
     last_open_hand = Hand.query.filter_by(game_id=game_id, is_closed=0).order_by(Hand.serial_no.desc()).first()
     if last_open_hand:
         abort(403, 'Game {game_id} has open hand {hand_id}! You should finish it before dealing new hand!'.format(game_id=game_id, hand_id=last_open_hand.id))
-    last_closed_hand = Hand.query.filter_by(game_id=game_id, is_closed=1).order_by(Hand.serial_no.desc()).first()
+
+    # no more hands allowed
+    all_games_played = False
+    players_count = game.players.count()
+    hands_count = Hand.query.filter_by(game_id=game_id).count()
+    if players_count in [9,10] and hands_count >= 10:
+        all_games_played = True
+    elif players_count == 8 and hands_count >= 12:
+        all_games_played = True
+    elif players_count == 7 and hands_count >= 14:
+        all_games_played = True
+    elif players_count == 6 and hands_count >= 16:
+        all_games_played = True
+    elif players_count <= 5 and hands_count >= 20:
+        all_games_played = True
+    if all_games_played:
+        abort(403, 'All {hands_count} hands in game {game_id} are already dealt!'.format(hands_count=hands_count, game_id=game_id))
 
     # first hand configuration by default
     serial_no = 1
@@ -464,6 +480,7 @@ def deal_cards(game_id):
         new_hand_id = last_hand.id + 1
 
     # hand configuration based on previous hands configuration
+    last_closed_hand = Hand.query.filter_by(game_id=game_id, is_closed=1).order_by(Hand.serial_no.desc()).first()
     if last_closed_hand:
 
         # serial_no for new hand
