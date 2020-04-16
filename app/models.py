@@ -149,6 +149,28 @@ class Game(db.Model):
             all_games_played = True
         return all_games_played
 
+    def get_scores(self):
+        game_scores = {}
+        played_hands = Hand.query.filter_by(game_id=self.id).all()
+        game_scores['total'] = {}
+        for player in self.players.all():
+            username = User.query.filter_by(id=player.id).first().username
+            game_scores['total'][username] = {}
+            game_scores['total'][username]['score'] = 0
+        for hand in played_hands:
+            game_scores['hand #' + str(hand.serial_no)] = {}
+            game_scores['hand #' + str(hand.serial_no)]['cards_per_player'] = hand.cards_per_player
+            game_scores['hand #' + str(hand.serial_no)]['trump'] = hand.trump
+            for player in self.players.all():
+                username = User.query.filter_by(id=player.id).first().username
+                hand_score = HandScore.query.filter_by(hand_id=hand.id, player_id=player.id).first()
+                game_scores['hand #' + str(hand.serial_no)][username] = {}
+                game_scores['hand #' + str(hand.serial_no)][username]['bet_size'] = hand_score.bet_size
+                game_scores['hand #' + str(hand.serial_no)][username]['score'] = hand_score.score
+                game_scores['hand #' + str(hand.serial_no)][username]['bonus'] = hand_score.bonus
+                game_scores['total'][username]['score'] = game_scores['total'][username]['score'] + hand_score.score if hand_score.score else 0
+        return game_scores
+
 
 class Player(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, primary_key=True)
@@ -326,10 +348,24 @@ class HandScore(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     hand_id = db.Column(db.Integer, db.ForeignKey('hand.id'))
     bet_size = db.Column(db.Integer)
-    player_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
+    player_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    score = db.Column(db.Integer, default=None)
+    bonus = db.Column(db.Integer, default=None)
 
     def __repr__(self):
         return "<Player {}'s score in hand {}>".format(User.query.filter_by(id=self.player_id).first().username, self.hand_id)
+
+    def calculate_current_score(self):
+        took_turns = Turn.query.filter_by(hand_id=self.hand_id, took_user_id=self.player_id).count()
+        score = took_turns
+        if took_turns == self.bet_size:
+            score = score + 10
+            self.bonus = 1
+        else:
+            self.bonus = 0
+        self.score = score
+        db.session.commit()
+        return score
 
 
 class Turn(db.Model):

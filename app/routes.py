@@ -607,6 +607,36 @@ def make_bet(game_id, hand_id):
     }), 200
 
 
+@app.route('{base_path}/game/<game_id>/hand/<hand_id>/get'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+def get_hand(game_id, hand_id):
+
+    token = request.json.get('token')
+    if token is None:
+        abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('post_token')))
+    requesting_user = User.verify_auth_token(token)
+    if requesting_user is None:
+        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('post_token')))
+    if requesting_user is None:
+        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('post_token')))
+
+    p = Player.query.filter_by(game_id=game_id, user_id=requesting_user.id).first()
+    if p is None:
+        abort(403, 'User {username} is not participating in game {game_id}!'.format(username=requesting_user.username, game_id=game_id))
+
+    h = Hand.query.filter_by(id=hand_id).first()
+    if h is None or h.is_closed == 1:
+        abort(403, 'Hand {hand_id} is closed or does not exist!'.format(hand_id=hand_id))
+
+    return jsonify({
+        'game_id': game_id,
+        'hand_id': hand_id,
+        'cards_per_player': h.cards_per_player,
+        'trump': h.trump,
+        'player': requesting_user.username,
+        'cards_in_hand': h.get_user_current_hand(requesting_user)
+    }), 200
+
+
 @app.route('{base_path}/game/<game_id>/hand/<hand_id>/turn/card/put/<card_id>'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
 def put_card(game_id, hand_id, card_id):
 
@@ -672,12 +702,23 @@ def put_card(game_id, hand_id, card_id):
 
     db.session.commit()
 
+    g = Game.query.filter_by(id=game_id).first()
     t = Turn.query.filter_by(id=t.id).first()
+    players_count = g.players.count()
 
     took_player = None
-    if len(t.stroke_cards()) == Game.query.filter_by(id=game_id).first().players.count():
+    if len(t.stroke_cards()) == players_count:
         took_player = User.query.filter_by(id=DealtCards.query.filter_by(hand_id=hand_id, card_id=t.highest_card().casefold()).first().player_id).first()
         t.took_user_id = took_player.id
+
+    turn_cards_count = TurnCard.query.filter_by(turn_id=t.id).count()
+    if turn_cards_count == players_count and h.all_turns_made():
+        h.is_closed = 1
+        h.calculate_current_score()
+        if g.all_hands_played():
+            g.finished = datetime.utcnow()
+            game_scores = g.get_scores()
+
 
     db.session.commit()
 
@@ -690,7 +731,24 @@ def put_card(game_id, hand_id, card_id):
         'cards_on_table': cards_on_table,
         'starting_suit': t.get_starting_suit(),
         'highest_card': t.highest_card(),
-        'took_player': took_player.username if took_player else None
+        'took_player': took_player.username if took_player else None,
+        'hand_is_finished': True if h.is_closed == 1 else False,
+        'game_is finished': True if g.finished else False
+    }), 200
+
+
+@app.route('{base_path}/game/<game_id>/score'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+def game_score(game_id):
+
+    g = Game.query.filter_by(id=game_id).first()
+    if not g:
+        abort(400, 'Game does not exist!')
+
+    game_scores = g.get_scores()
+
+    return jsonify({
+        'game_id': game_id,
+        'game_scores': game_scores
     }), 200
 
 
