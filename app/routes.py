@@ -5,7 +5,7 @@ from flask_login import login_user, logout_user, current_user, login_required
 from werkzeug.urls import url_parse
 from app import app, db
 from app.forms import LoginForm, RegistrationForm
-from app.models import User, Room, Game, Player, Hand, DealtCards, HandScore
+from app.models import User, Room, Game, Player, Hand, DealtCards, HandScore, TurnCard, Turn
 from app.social_login import OAuthSignIn
 from datetime import datetime
 import re
@@ -374,7 +374,6 @@ def finish_game():
     db.session.commit()
 
     players_list = []
-    db.session.commit()
     for player in hosted_room.connected_users.all():
         g.connect(player)
         players_list.append(player.username)
@@ -414,6 +413,7 @@ def define_positions(game_id):
 
     players = game.players.all()
     random.shuffle(players)
+
     players_list = []
     for player in players:
         p = Player.query.filter_by(game_id=game_id,user_id=player.id).first()
@@ -447,32 +447,18 @@ def deal_cards(game_id):
     if room.host != requesting_user:
         abort(403, 'Only host can deal cards!')
 
-    last_open_hand = Hand.query.filter_by(game_id=game_id, is_closed=0).order_by(Hand.serial_no.desc()).first()
-    if last_open_hand:
-        abort(403, 'Game {game_id} has open hand {hand_id}! You should finish it before dealing new hand!'.format(game_id=game_id, hand_id=last_open_hand.id))
+    if game.has_open_hands():
+        abort(403, 'Game {game_id} has open hand {hand_id}! You should finish it before dealing new hand!'.format(game_id=game_id, hand_id=game.last_open_hand().id))
 
     # no more hands allowed
-    all_games_played = False
-    players_count = game.players.count()
-    hands_count = Hand.query.filter_by(game_id=game_id).count()
-    if players_count in [9,10] and hands_count >= 10:
-        all_games_played = True
-    elif players_count == 8 and hands_count >= 12:
-        all_games_played = True
-    elif players_count == 7 and hands_count >= 14:
-        all_games_played = True
-    elif players_count == 6 and hands_count >= 16:
-        all_games_played = True
-    elif players_count <= 5 and hands_count >= 20:
-        all_games_played = True
-    if all_games_played:
-        abort(403, 'All {hands_count} hands in game {game_id} are already dealt!'.format(hands_count=hands_count, game_id=game_id))
+    if game.all_hands_played():
+        abort(403, 'All hands in game {game_id} are already dealt!'.format(game_id=game_id))
 
     # first hand configuration by default
     serial_no = 1
     trump = 'd'
     cards_per_player = min(floor(52/game.players.count()), 10)
-    starting_player = Player.query.filter_by(game_id=game_id).order_by(Player.position).first().user_id
+    starting_player = game.get_starter()
     new_hand_id = 1
     # FIXME: for some reason hand.id autoincrement does not work - it's temporary fix until autoincrement is restored
     last_hand = Hand.query.order_by(Hand.id.desc()).first()
@@ -508,24 +494,20 @@ def deal_cards(game_id):
         else:
             cards_per_player = last_closed_hand.cards_per_player - 1
 
-        # next starting player
-        last_hand_starting_position = Player.query.filter_by(game_id=game_id, user_id=last_closed_hand.starting_player).first().position
-        new_hand_starting_position = last_hand_starting_position + 1
-        if new_hand_starting_position > game.players.count():
-            new_hand_starting_position = 1
-        starting_player = Player.query.filter_by(position=new_hand_starting_position, game_id=game_id).first().user_id
+        # next starting player is the one who was second is previous hand
+        starting_player = last_closed_hand.get_player_by_pos(2)
 
-    h = Hand(id=new_hand_id, game_id=int(game_id), serial_no=serial_no, trump=trump, cards_per_player=cards_per_player, starting_player=starting_player)
+    h = Hand(id=new_hand_id, game_id=int(game_id), serial_no=serial_no, trump=trump, cards_per_player=cards_per_player, starting_player=starting_player.id)
     db.session.add(h)
 
-    # distributing cards deck
+    # creating and shuffling card deck
     deck = []
     card_grades = list(range(2, 10))
-    card_grades.append('T')
-    card_grades.append('J')
-    card_grades.append('Q')
-    card_grades.append('K')
-    card_grades.append('A')
+    card_grades.append('t')
+    card_grades.append('j')
+    card_grades.append('q')
+    card_grades.append('k')
+    card_grades.append('a')
     suits = ['d', 'h', 'c', 's']
     # d for diamond, h for hearts, c for clubs, s for spades
     for grade in card_grades:
@@ -534,30 +516,32 @@ def deal_cards(game_id):
 
     random.shuffle(deck)
 
+    # deal (distribute) cards
     i = 0
     # dcs_json = {}
     for card in deck:
         i = i + 1
         if i <= cards_per_player * game.players.count():
-            card_player = Player.query.filter_by(game_id=game_id, position=deck.index(card) % game.players.count() + 1).first().user_id
-            # player_username = User.query.filter_by(id=card_player).first().username
-            dc = DealtCards(hand_id=h.id, card_id=card, player_id=card_player)
+            card_player = h.get_player_by_pos(deck.index(card) % game.players.count() + 1)
+            dc = DealtCards(hand_id=h.id, card_id=card, player_id=card_player.id)
             db.session.add(dc)
-            """if player_username not in dcs_json or len(dcs_json[player_username]) == 0:
-                dcs_json[player_username] = [card]
-            else:
-                dcs_json[player_username].append(card)"""
+
+    """players_cards = {}
+    for player in game.players.all():
+        player_obj = User.query.filter_by(id=player.id).first()
+        player_cards = h.get_user_initial_hand(player_obj)
+        players_cards[player_obj.username]=player_cards"""
 
     db.session.commit()
 
     return jsonify(
-        # dcs_json,
         {
             'hand_id': h.id,
             'game_id': h.game_id,
             'dealt_cards_per_player': h.cards_per_player,
             'trump': h.trump,
-            'starting_player': User.query.filter_by(id=h.starting_player).first().username
+            'starting_player': starting_player.username,
+            # 'dealt_cards': players_cards
         }
     ), 200
 
@@ -582,6 +566,8 @@ def make_bet(game_id, hand_id):
     if p is None:
         abort(403, 'User {username} is not participating in game {game_id}!'.format(username=requesting_user.username, game_id=game_id))
 
+    game = Game.query.filter_by(id=game_id).first()
+
     h = Hand.query.filter_by(id=hand_id).first()
     if h is None or h.is_closed == 1:
         abort(403, 'Hand {hand_id} is closed or does not exist!'.format(hand_id=hand_id))
@@ -591,42 +577,120 @@ def make_bet(game_id, hand_id):
         abort(403, 'User {username} already has made a bet in hand {hand_id}!'.format(username=requesting_user.username, hand_id=hand_id))
 
     # check if it's your turn
-    players = Player.query.filter_by(game_id=game_id).order_by(Player.position).all()
-    for player in players:
-        player.current_pos = player.position - (h.serial_no - 1)
-        if player.current_pos <= 0:
-            player.current_pos = len(players) + player.current_pos
-        if player.user_id == requesting_user.id:
-            requesting_player_current_pos = player.current_pos
-    if not requesting_player_current_pos:
+    requesting_player_current_pos = h.get_position(requesting_user)
+    if not h.is_registered(requesting_user):
         abort(400, 'User {username} is not registered in hand {hand_id} of game {game_id}!'.format(username=requesting_user.username, hand_id=hand_id, game_id=game_id))
-    for player in players:
-        if player.current_pos < requesting_player_current_pos and HandScore.query.filter_by(hand_id=hand_id, player_id=player.user_id).first() is None:
-            abort(403, "It is {username}'s turn now!".format(username=User.query.filter_by(id=player.user_id).first().username))
+    next_betting_user = h.next_betting_user()
+    if next_betting_user != requesting_user:
+        abort(403, "It is {username}'s turn now!".format(username=next_betting_user.username))
 
     # "Someone should stay unhappy" (rule name)
-    is_last_bet = False
-    hand_bets = HandScore.query.filter_by(hand_id=hand_id).all()
-    made_bets = 0
-    for hb in hand_bets:
-        made_bets = made_bets + hb.bet_size
-    if requesting_player_current_pos == len(players):
-        is_last_bet = True
-    if is_last_bet:
-        if bet_size + made_bets == h.cards_per_player:
-            abort(400, 'Someone should stay unhappy! Change your bet size since you are last betting player in hand.')
+    made_bets = h.get_sum_of_bets()
+    is_last_bet = h.is_betting_last(requesting_user)
+    if is_last_bet and bet_size + made_bets == h.cards_per_player:
+        abort(400, 'Someone should stay unhappy! Change your bet size since you are last betting player in hand.')
 
     hs = HandScore(player_id=requesting_user.id, hand_id=hand_id, bet_size=bet_size)
     db.session.add(hs)
     db.session.commit()
 
+    next_player = h.next_betting_user()
+
     return jsonify({
-        'number of players': len(players),
-        'serial number of hand': h.serial_no,
-        'player position': requesting_player_current_pos,
-        'is last player to bet': is_last_bet,
-        'made bets': made_bets + bet_size,
-        'cards per player = restricted sum of bets': h.cards_per_player
+        'number_of_players': game.players.count(),
+        'serial_number_of_hand': h.serial_no,
+        'player_position': requesting_player_current_pos,
+        'is_last_player_to_bet': is_last_bet,
+        'next_player_to_bet': next_player.username if next_player and not is_last_bet else None,
+        'made_bets': made_bets + bet_size,
+        'cards_per_player = restricted sum of bets': h.cards_per_player
+    }), 200
+
+
+@app.route('{base_path}/game/<game_id>/hand/<hand_id>/turn/card/put/<card_id>'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+def put_card(game_id, hand_id, card_id):
+
+    token = request.json.get('token')
+    if token is None:
+        abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('post_token')))
+    requesting_user = User.verify_auth_token(token)
+    if requesting_user is None:
+        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('post_token')))
+    if requesting_user is None:
+        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('post_token')))
+
+    p = Player.query.filter_by(game_id=game_id, user_id=requesting_user.id).first()
+    if p is None:
+        abort(403, 'User {username} is not participating in game {game_id}!'.format(username=requesting_user.username, game_id=game_id))
+
+    h = Hand.query.filter_by(id=hand_id).first()
+    if h is None or h.is_closed == 1:
+        abort(403, 'Hand {hand_id} is closed or does not exist!'.format(hand_id=hand_id))
+
+    if h.all_turns_made():
+        abort(403, 'All turns are made in hand {hand_id} of game {game_id}!'.format(hand_id=hand_id, game_id=game_id))
+
+    t = h.get_current_turn()
+    if t and t.if_put_card(requesting_user):
+        abort(403, 'Player {username} has already put card in current turn of hand {hand_id}!'.format(username=requesting_user.username, hand_id=hand_id))
+
+    curr_player = h.next_card_putting_user()
+    if requesting_user != curr_player:
+        abort(403, "It is {username}'s turn now!".format(username=curr_player.username))
+
+    card_id = card_id.casefold()
+
+    player_current_hand = h.get_user_current_hand(requesting_user)
+    if card_id not in player_current_hand:
+        abort(403, 'Player {username} does not have card {card_id} on his hand!'.format(username=requesting_user.username, card_id=card_id))
+
+    last_turn = h.get_last_turn()
+    serial_no = 1
+    if last_turn:
+        serial_no = last_turn.serial_no + 1
+
+    if not t:
+        t = Turn(
+            hand_id=hand_id,
+            serial_no=serial_no
+        )
+        db.session.add(t)
+
+    if len(t.stroke_cards()) > 0 and len(player_current_hand) > 1:
+        turn_suit = t.get_starting_suit()
+        card_suit = card_id[-1:]
+        card_score = str(card_id[:1])
+        if card_id != 'J' + str(h.trump):
+            if h.user_has_suit(suit=turn_suit, user=requesting_user) and card_suit != turn_suit and card_suit != h.trump:
+                abort(403, 'You should put card of following suits: {turn_suit} or {trump}'.format(turn_suit=turn_suit, trump=h.trump))
+            trump_hierarchy = ['2', '3', '4', '5', '6', '7', '8', 't', 'q', 'k', 'a', '9', 'j']
+            if card_suit == h.trump and turn_suit != h.trump and t.highest_card()[-1:]==h.trump.casefold() and trump_hierarchy.index(card_score) < trump_hierarchy.index(t.highest_card()[:1]):
+                abort(403, 'You cannot utilize lower trumps!')
+
+    tc = TurnCard(player_id=requesting_user.id, card_id=card_id, turn_id=t.id, hand_id=hand_id)
+    db.session.add(tc)
+
+    db.session.commit()
+
+    t = Turn.query.filter_by(id=t.id).first()
+
+    took_player = None
+    if len(t.stroke_cards()) == Game.query.filter_by(id=game_id).first().players.count():
+        took_player = User.query.filter_by(id=DealtCards.query.filter_by(hand_id=hand_id, card_id=t.highest_card().casefold()).first().player_id).first()
+        t.took_user_id = took_player.id
+
+    db.session.commit()
+
+    cards_on_table = []
+    for card in t.stroke_cards():
+        cards_on_table.append(card.card_id)
+
+    return jsonify({
+        'turn_no': t.serial_no,
+        'cards_on_table': cards_on_table,
+        'starting_suit': t.get_starting_suit(),
+        'highest_card': t.highest_card(),
+        'took_player': took_player.username if took_player else None
     }), 200
 
 
