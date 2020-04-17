@@ -22,20 +22,20 @@ def create_user():
             password is None or \
             email is None:
         abort(400, 'Missing mandatory arguments (username, password or email)!')
-    if not re.match(app.config['USERNAME_REGEXP'], password):
+    if not re.match(app.config['USERNAME_REGEXP'], username):
         abort(400, 'Bad username!')
     if not re.match(app.config['EMAIL_REGEXP'], email):
         abort(400, 'Bad email!')
     if not re.match(app.config['PASSWORD_REGEXP'], password):
         abort(400, 'Password does not satisfy security requirements!')
-    if User.query.filter_by(username=username).first() is not None:
+    if User.query.filter_by(username=username.casefold()).count() > 0:
         abort(400, 'User with username {username} already exists!'.format(username=username))
     if User.query.filter_by(email=email).first() is not None:
         abort(400, 'User with email {email} already exists!'.format(email=email))
     if preferred_lang not in ['ru', 'en']:
         abort(400, 'Language {lang} is not supported!'.format(lang=preferred_lang))
     user = User(
-        username=username,
+        username=username.casefold(),
         email=email,
         preferred_language=preferred_lang,
         last_seen=last_seen,
@@ -46,7 +46,7 @@ def create_user():
     db.session.commit()
     return \
         jsonify({
-            'username': user.username,
+            'username': user.username.casefold(),
             'email': user.email,
             'preferred_lang': user.preferred_language,
             'registered': user.registered,
