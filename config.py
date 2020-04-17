@@ -13,7 +13,7 @@ class Config(object):
             'secret': os.environ.get('facebook_secret')
         }
     }
-    USERNAME_REGEXP = os.environ.get('USERNAME_REGEXP') or "^[a-zA-Z][a-zA-Z0-9- _\.]{1,20}$"
+    USERNAME_REGEXP = os.environ.get('USERNAME_REGEXP') or "^[a-zA-Z][a-zA-Z0-9-_\.]{1,35}$"
     PASSWORD_REGEXP = os.environ.get('PASSWORD_REGEXP') or "(?=^.{8,}$)(?=.*[a-z])(?=.*[A-Z])(?!.*\s).*$"
     EMAIL_REGEXP = os.environ.get('EMAIL_REGEXP') or "(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
     TOKEN_LIFETIME = os.environ.get('TOKEN_LIFETIME') or 86400  # 24 hours

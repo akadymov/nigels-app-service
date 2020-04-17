@@ -59,6 +59,7 @@ def create_user():
 
 @user.route('{base_path}/user/<username>'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
 def get_user(username):
+    username = username.casefold()
     user = User.query.filter_by(username=username).first()
     if user is None:
         abort(404, 'User {username} not found!'.format(username=username))
@@ -74,7 +75,7 @@ def get_user(username):
 
 @user.route('{base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
 def post_token():
-    username = request.json.get('username')
+    username = request.json.get('username').casefold()
     password = request.json.get('password')
     user = User.query.filter_by(username=username).first()
     if user is None or not user.check_password(str(password)):
@@ -84,13 +85,14 @@ def post_token():
         return jsonify({
             'token': token.decode('ascii'),
             'expires_in': app.config['TOKEN_LIFETIME']
-        })
+        }), 201
 
 
 @user.route('{base_path}/user/<username>'.format(base_path=app.config['API_BASE_PATH']), methods=['PUT'])
 def edit_user(username):
 
     token = request.json.get('token')
+    username = username.casefold()
     if token is None:
         abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
     requesting_user = User.verify_auth_token(token)
