@@ -36,7 +36,7 @@ def create_user():
         abort(400, 'Language {lang} is not supported!'.format(lang=preferred_lang))
     user = User(
         username=username.casefold(),
-        email=email,
+        email=email.casefold(),
         preferred_language=preferred_lang,
         last_seen=last_seen,
         registered=registered
@@ -116,7 +116,7 @@ def edit_user(username):
     if preferred_lang not in ['ru', 'en']:
         abort(400, 'Language {lang} is not supported!'.format(lang=preferred_lang))
 
-    modified_user.email = email
+    modified_user.email = email.casefold()
     modified_user.about_me = about_me
     modified_user.preferred_language = preferred_lang
     modified_user.last_seen = datetime.utcnow()
