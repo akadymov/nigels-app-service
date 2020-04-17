@@ -22,3 +22,4 @@ class Config(object):
     DEFAULT_LANG = 'en'
     MIN_PLAYER_TO_START = 2
     MAX_PLAYER_TO_START = 10
+    FLASK_APP = 'nigels-app.py'
