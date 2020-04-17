@@ -277,6 +277,13 @@ class Hand(db.Model):
             made_bets = made_bets + hb.bet_size
         return made_bets
 
+    def all_bets_made(self):
+        hand_bets = HandScore.query.filter_by(hand_id=self.id).all()
+        for bet in hand_bets:
+            if bet.bet_size is None:
+                return False
+        return True
+
     def all_turns_made(self):
         hand_turns = Turn.query.filter_by(hand_id=self.id).all()
         return len(hand_turns) >= self.cards_per_player
@@ -324,9 +331,11 @@ class Hand(db.Model):
             for player in game_players:
                 turn_position = self.get_position(User.query.filter_by(id=player.user_id).first())
                 turn_players[turn_position] = player.user_id
-            turn_players_ordered = sorted(turn_players)
+            turn_players_ordered = []
+            for index in sorted(turn_players):
+                turn_players_ordered.append(turn_players[index])
             for player_id in turn_players_ordered:
-                player_card = TurnCard.query.filter_by(turn_id = curr_turn.id, player_id = player_id).first()
+                player_card = TurnCard.query.filter_by(turn_id=curr_turn.id, player_id=player_id).first()
                 if not player_card:
                     return User.query.filter_by(id=player_id).first()
         elif last_turn:
