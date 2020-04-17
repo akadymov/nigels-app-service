@@ -1,25 +1,28 @@
-# nigels-app
-Web-services for nigels card game application. Created with Flask framework.
-Requirements and blueprints: https://docs.google.com/spreadsheets/d/117oYt6tzSbarLFpdtWTk-ohP1Usm7WvgBH-RtXKfbB4/edit?usp=sharing
+# nigels-app-services
+
+Nigels card game application API.
+Created with [Flask framework].
+[Product requirements]
 
 
-Work In Progress!!!
+**Work In Progress!!!**
 
 
-Getting started:
+### Getting started
 
 1. Install all packages from requirements.txt. You can use command:
+    ```sh
     $ pip install -r requirements.txt
-
-2. Set up configs. You can use command:
+2. Set up configs. All configurable variables can be found in /config.py. You can use following command to set config (use 'export' instead 'set' in Linux-based OS):
+    ```sh
     $ set {config_name}
-Use 'export' instead 'set' in Linux-based OS. All config variables can be found in /config.py
-
-3. Create Sqlite db with flask migrate and sqlalchemy. Use following commands:
+3. Create Sqlite db with flask migrate and sqlalchemy. Use following commands (creates /migrations folder and /app.db file):
+    ```sh
     $ flask db init
     $ flask db migrate
     $ flask db upgrade
-This will create /migrations folder and /app.db file. 
-
-4. [Optional] Run Unittests by launching /tests.py:
-    $ python tests.py
+4. **[Optional]** Run tests by launching files in tests folder, for example:
+    ```sh
+    $ python -m unittests tests/integration/user.py
+[Flask framework]: https://flask.palletsprojects.com/
+[Product requirements]: https://docs.google.com/spreadsheets/d/117oYt6tzSbarLFpdtWTk-ohP1Usm7WvgBH-RtXKfbB4/edit?usp=sharing
