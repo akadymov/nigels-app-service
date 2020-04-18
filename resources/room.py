@@ -36,9 +36,8 @@ def create_room():
     token = request.json.get('token')
     if token is None:
         abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
-    requesting_user = User.verify_auth_token(token)
-    if requesting_user is None:
-        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
+
+    requesting_user = User.verify_api_auth_token(token)
 
     hosted_room = Room.query.filter_by(host=requesting_user, closed=None).first()
     if hosted_room:
@@ -74,11 +73,8 @@ def create_room():
 def close(room_id):
 
     token = request.json.get('token')
-    if token is None:
-        abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
-    requesting_user = User.verify_auth_token(token)
-    if requesting_user is None:
-        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
+
+    requesting_user = User.verify_api_auth_token(token)
 
     target_room = Room.query.filter_by(id=room_id).first()
     if target_room is None:
@@ -111,11 +107,8 @@ def close(room_id):
 def connect(room_id):
 
     token = request.json.get('token')
-    if token is None:
-        abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
-    requesting_user = User.verify_auth_token(token)
-    if requesting_user is None:
-        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
+
+    requesting_user = User.verify_api_auth_token(token)
 
     connected_room = requesting_user.connected_rooms
     if connected_room.count() > 0:
@@ -141,11 +134,8 @@ def connect(room_id):
 def disconnect(room_id):
 
     token = request.json.get('token')
-    if token is None:
-        abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
-    requesting_user = User.verify_auth_token(token)
-    if requesting_user is None:
-        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
+
+    requesting_user = User.verify_api_auth_token(token)
 
     target_room = Room.query.filter_by(id=room_id).first()
     if target_room is None:

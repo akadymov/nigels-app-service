@@ -17,11 +17,7 @@ def deal_cards(game_id):
     token = request.json.get('token')
     if token is None:
         abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
-    requesting_user = User.verify_auth_token(token)
-    if requesting_user is None:
-        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
-    if requesting_user is None:
-        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
+    requesting_user = User.verify_api_auth_token(token)
 
     game = Game.query.filter_by(id=game_id).first()
     room = Room.query.filter_by(id=game.room_id).first()
@@ -133,11 +129,7 @@ def get_hand_cards(game_id, hand_id):
     token = request.json.get('token')
     if token is None:
         abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
-    requesting_user = User.verify_auth_token(token)
-    if requesting_user is None:
-        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
-    if requesting_user is None:
-        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
+    requesting_user = User.verify_api_auth_token(token)
 
     p = Player.query.filter_by(game_id=game_id, user_id=requesting_user.id).first()
     if p is None:
@@ -163,11 +155,7 @@ def put_card(game_id, hand_id, card_id):
     token = request.json.get('token')
     if token is None:
         abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
-    requesting_user = User.verify_auth_token(token)
-    if requesting_user is None:
-        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
-    if requesting_user is None:
-        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
+    requesting_user = User.verify_api_auth_token(token)
 
     p = Player.query.filter_by(game_id=game_id, user_id=requesting_user.id).first()
     if p is None:

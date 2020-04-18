@@ -93,17 +93,13 @@ def edit_user(username):
 
     token = request.json.get('token')
     username = username.casefold()
-    if token is None:
-        abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
-    requesting_user = User.verify_auth_token(token)
-    if requesting_user is None:
-        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
+    requesting_user = User.verify_api_auth_token(token)
 
     modified_user = User.query.filter_by(username=username).first()
     if modified_user is None:
         abort(404, 'User {username} not found!'.format(username=username))
     if modified_user != requesting_user:
-        abort(401, 'You can update only your own profile ({username})!'.format(username=str(requesting_user)))
+        abort(401, 'You can update only your own profile ({username})!'.format(username=str(requesting_user.username)))
 
     email = request.json.get('email') or modified_user.email
     about_me = request.json.get('about_me') or modified_user.about_me

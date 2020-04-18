@@ -12,13 +12,7 @@ turn = Blueprint('turn', __name__)
 def bet(game_id, hand_id):
 
     token = request.json.get('token')
-    if token is None:
-        abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
-    requesting_user = User.verify_auth_token(token)
-    if requesting_user is None:
-        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
-    if requesting_user is None:
-        abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
+    requesting_user = User.verify_api_auth_token(token)
 
     bet_size = request.json.get('bet_size')
     if bet_size is None:

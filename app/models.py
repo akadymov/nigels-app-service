@@ -3,6 +3,7 @@ from app import db, login, app
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired)
+from flask import url_for, abort
 
 
 connections = db.Table(
@@ -70,6 +71,17 @@ class User(UserMixin, db.Model):
             return None
         user = User.query.filter_by(username=data['username']).first()
         return user
+
+    @staticmethod
+    def verify_api_auth_token(token):
+        if token is None:
+            abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(
+                post_token_url=url_for('user.post_token')))
+        requesting_user = User.verify_auth_token(token)
+        if requesting_user is None:
+            abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(
+                post_token_url=url_for('user.post_token')))
+        return requesting_user
 
 
 @login.user_loader
