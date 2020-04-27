@@ -32,9 +32,6 @@ class UserMethodsCase(BaseCase):
                                        headers={"Content-Type": "application/json"}, data=payload2)
 
         # Then
-        print()
-
-        print('POST {base_path}/user'.format(base_path=app.config['API_BASE_PATH']))
         self.assertEqual(201, response.status_code,
                          msg='Invalid create user response code ({})!'.format(response.status_code))
         self.assertEqual(email, response.json['email'], msg='Invalid email in response body!')
@@ -45,7 +42,6 @@ class UserMethodsCase(BaseCase):
         self.assertEqual(str, type(response.json['registered']), msg='No registered timestamp in response body!')
         self.assertEqual('matroskin', response.json['username'], msg='Invalid username in response body!')
 
-        print('GET {base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username))
         self.assertEqual(200, get_user_response.status_code,
                          msg='Invalid response code ({}) in get user response!'.format(get_user_response.status_code))
         self.assertEqual(email, get_user_response.json['email'],
@@ -60,7 +56,6 @@ class UserMethodsCase(BaseCase):
         self.assertEqual('matroskin', get_user_response.json['username'],
                          msg='Invalid username in get user response body!')
 
-        print('POST {base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']))
         self.assertEqual(201, token_response.status_code,
                          msg='Invalid response code ({}) in post token response!'.format(token_response.status_code))
         self.assertIsNotNone(token_response.json['expires_in'], msg='No expiration time in post token response body!')
@@ -86,13 +81,9 @@ class UserMethodsCase(BaseCase):
             headers={"Content-Type": "application/json"})
 
         # Then
-        print()
-
-        print('POST {base_path}/user'.format(base_path=app.config['API_BASE_PATH']))
         self.assertEqual(400, response.status_code, msg='Invalid create user code ({})!'.format(response.status_code))
         self.assertEqual(0, u_count, msg='User with bad email was created in DB!')
 
-        print('GET {base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username))
         self.assertEqual(404, get_user_response.status_code,
                          msg='Invalid get user response code ({})!'.format(get_user_response.status_code))
 
@@ -124,15 +115,11 @@ class UserMethodsCase(BaseCase):
             headers={"Content-Type": "application/json"})
 
         # Then
-        print()
-
-        print('POST {base_path}/user'.format(base_path=app.config['API_BASE_PATH']))
         self.assertEqual(400, response.status_code,
                          msg='Invalid create user response code ({})!'.format(response.status_code))
         self.assertTrue(u_count < 2, msg="More than one user with specified email were created in DB!")
         self.assertTrue(u_count > 0, msg="User was not created in DB!")
 
-        print('GET {base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username2))
         self.assertEqual(404, get_user_response.status_code,
                          msg='Invalid get user response code ({})!'.format(get_user_response.status_code))
 
@@ -164,15 +151,11 @@ class UserMethodsCase(BaseCase):
             headers={"Content-Type": "application/json"})
 
         # Then
-        print()
-
-        print('POST {base_path}/user'.format(base_path=app.config['API_BASE_PATH']))
         self.assertEqual(400, response.status_code,
                          msg='Invalid create user response code ({})!'.format(response.status_code))
         self.assertTrue(u_count < 2, msg="More than one user with specified username were created in DB!")
         self.assertTrue(u_count > 0, msg="User was not created in DB!")
 
-        print('GET {base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username))
         self.assertEqual(200, get_user_response.status_code,
                          msg='Invalid get user response code ({})!'.format(get_user_response.status_code))
 
@@ -196,14 +179,10 @@ class UserMethodsCase(BaseCase):
             headers={"Content-Type": "application/json"})
 
         # Then
-        print()
-
-        print('POST {base_path}/user'.format(base_path=app.config['API_BASE_PATH']))
         self.assertEqual(400, response.status_code,
                          msg='Invalid create user response code ({})!'.format(response.status_code))
         self.assertEqual(0, u_count, msg='User with weak password was created in DB!')
 
-        print('GET {base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username))
         self.assertEqual(404, get_user_response.status_code,
                          msg='Invalid get user response code ({})!'.format(get_user_response.status_code))
 
@@ -230,13 +209,9 @@ class UserMethodsCase(BaseCase):
                                        headers={"Content-Type": "application/json"}, data=payload2)
 
         # Then
-        print()
-
-        print('POST {base_path}/user'.format(base_path=app.config['API_BASE_PATH']))
         self.assertEqual(201, response.status_code,
                          msg='Invalid create user response code ({})!'.format(response.status_code))
 
-        print('POST {base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']))
         self.assertEqual(401, token_response.status_code,
                          msg='Invalid response code ({}) in post token response!'.format(token_response.status_code))
 
@@ -246,6 +221,8 @@ class UserMethodsCase(BaseCase):
         username = "Matroskin"
         password = "prettyStrongPassword!"
         about_me = "I am cool cat who can milk cow in countryside! Простоквашино рулеззз!"
+        email2 = "pechkin@prostokvashino.ussr"
+        username2 = "pechkin"
         payload1 = json.dumps({
             "email": email,
             "username": username,
@@ -255,27 +232,32 @@ class UserMethodsCase(BaseCase):
             "username": username,
             "password": password
         })
+        payload3 = json.dumps({
+            "email": email2,
+            "username": username2,
+            "password": password
+        })
 
         # When
         response = self.app.post('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']),
                                  headers={"Content-Type": "application/json"}, data=payload1)
+        response2 = self.app.post('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']),
+                                 headers={"Content-Type": "application/json"}, data=payload3)
         token_response = self.app.post('{base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']),
                                        headers={"Content-Type": "application/json"}, data=payload2)
 
         # Then
-        print()
-
-        print('POST {base_path}/user'.format(base_path=app.config['API_BASE_PATH']))
         self.assertEqual(201, response.status_code,
                          msg='Invalid create user response code ({})!'.format(response.status_code))
+        self.assertEqual(201, response2.status_code,
+                         msg='Invalid create user response code ({})!'.format(response2.status_code))
 
-        print('POST {base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']))
         self.assertEqual(201, token_response.status_code,
                          msg='Invalid response code ({}) in post token response!'.format(token_response.status_code))
         self.assertIsNotNone(token_response.json['expires_in'], msg='No expiration time in post token response body!')
         self.assertIsNotNone(token_response.json['token'], msg='No jwt-token time in post token response body!')
 
-        payload3 = json.dumps({
+        payload4 = json.dumps({
             "email": email,
             "about_me": about_me,
             "token": token_response.json['token'],
@@ -283,11 +265,58 @@ class UserMethodsCase(BaseCase):
         })
 
         update_profile_response = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
-                        headers={"Content-Type": "application/json"}, data=payload3)
+                        headers={"Content-Type": "application/json"}, data=payload4)
 
-        print('PUT {base_path}/user/<username>'.format(base_path=app.config['API_BASE_PATH']))
+        payload5 = json.dumps({
+            "email": email2,
+            "about_me": about_me,
+            "token": token_response.json['token'],
+            "preferred_lang": "ru"
+        })
+
+        update_profile_response2 = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username2),
+                        headers={"Content-Type": "application/json"}, data=payload5)
+
+        payload6 = json.dumps({
+            "email": username,
+            "about_me": about_me,
+            "token": token_response.json['token'],
+            "preferred_lang": "ru"
+        })
+
+        update_profile_response3 = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
+                        headers={"Content-Type": "application/json"}, data=payload6)
+
+        payload7 = json.dumps({
+            "email": email2,
+            "about_me": about_me,
+            "token": token_response.json['token'],
+            "preferred_lang": "ru"
+        })
+
+        update_profile_response4 = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
+                        headers={"Content-Type": "application/json"}, data=payload7)
+
+        payload8 = json.dumps({
+            "email": email2,
+            "about_me": about_me,
+            "token": token_response.json['token'],
+            "preferred_lang": "de"
+        })
+
+        update_profile_response5 = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
+                        headers={"Content-Type": "application/json"}, data=payload8)
+
         self.assertEqual(200, update_profile_response.status_code,
-                         msg='Invalid response code ({}) in get profile response!'.format(update_profile_response.status_code))
+                         msg='Invalid response code ({}) in update profile response!'.format(update_profile_response.status_code))
+        self.assertEqual(401, update_profile_response2.status_code,
+                         msg="Invalid response code ({}) in update another user's profile response!".format(update_profile_response2.status_code))
+        self.assertEqual(400, update_profile_response3.status_code,
+                         msg="Invalid response code ({}) in update profile with bad email response!".format(update_profile_response3.status_code))
+        self.assertEqual(400, update_profile_response4.status_code,
+                         msg="Invalid response code ({}) in update profile with used email response!".format(update_profile_response4.status_code))
+        self.assertEqual(400, update_profile_response5.status_code,
+                         msg="Invalid response code ({}) in update profile with bad lang response!".format(update_profile_response4.status_code))
         self.assertEqual(email, update_profile_response.json['email'], msg='Invalid email in get profile response body!')
         self.assertEqual(about_me, update_profile_response.json['about_me'], msg='About me is incorrect in get profile response body!')
         self.assertEqual(str, type(update_profile_response.json['last_seen']), msg='No last seen timestamp in get profile response body!')
@@ -319,13 +348,9 @@ class UserMethodsCase(BaseCase):
                                        headers={"Content-Type": "application/json"}, data=payload2)
 
         # Then
-        print()
-
-        print('POST {base_path}/user'.format(base_path=app.config['API_BASE_PATH']))
         self.assertEqual(201, response.status_code,
                          msg='Invalid create user response code ({})!'.format(response.status_code))
 
-        print('POST {base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']))
         self.assertEqual(201, token_response.status_code,
                          msg='Invalid response code ({}) in post token response!'.format(token_response.status_code))
         self.assertIsNotNone(token_response.json['expires_in'], msg='No expiration time in post token response body!')
@@ -339,7 +364,6 @@ class UserMethodsCase(BaseCase):
         update_profile_response = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
                         headers={"Content-Type": "application/json"}, data=payload3)
 
-        print('PUT {base_path}/user/<username>'.format(base_path=app.config['API_BASE_PATH']))
         self.assertEqual(200, update_profile_response.status_code,
                          msg='Invalid response code ({}) in get profile response!'.format(update_profile_response.status_code))
         self.assertEqual(email2, update_profile_response.json['email'], msg='Invalid email in get profile response body!')
@@ -372,13 +396,9 @@ class UserMethodsCase(BaseCase):
                                        headers={"Content-Type": "application/json"}, data=payload2)
 
         # Then
-        print()
-
-        print('POST {base_path}/user'.format(base_path=app.config['API_BASE_PATH']))
         self.assertEqual(201, response.status_code,
                          msg='Invalid create user response code ({})!'.format(response.status_code))
 
-        print('POST {base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']))
         self.assertEqual(201, token_response.status_code,
                          msg='Invalid response code ({}) in post token response!'.format(token_response.status_code))
         self.assertIsNotNone(token_response.json['expires_in'], msg='No expiration time in post token response body!')
@@ -392,7 +412,6 @@ class UserMethodsCase(BaseCase):
         update_profile_response = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
                         headers={"Content-Type": "application/json"}, data=payload3)
 
-        print('POST {base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']))
         self.assertEqual(401, update_profile_response.status_code,
                          msg='Invalid response code ({}) in post token response!'.format(update_profile_response.status_code))
 
