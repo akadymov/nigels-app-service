@@ -31,7 +31,7 @@ def get_list():
 
 
 @room.route('{base_path}/room'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
-def create_room():
+def create():
 
     token = request.json.get('token')
     if token is None:

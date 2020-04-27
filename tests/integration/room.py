@@ -1,11 +1,10 @@
 import unittest
 from app import app
-from app.models import User
 from tests.base_case import BaseCase
 import json
 
 
-class UserMethodsCase(BaseCase):
+class RoomMethodsCase(BaseCase):
 
     def test_rooms(self):
         # Given
@@ -230,7 +229,7 @@ class UserMethodsCase(BaseCase):
                                  headers={"Content-Type": "application/json"}, data=create_user3_payload)
 
         self.assertEqual(201, create_user3_response.status_code,
-                         msg="Failed to create host user! Response code is {}".format(create_user3_response.status_code))
+                         msg="Failed to create user Pechkin! Response code is {}".format(create_user3_response.status_code))
 
         # auth
         token_response3 = self.app.post('{base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']),
@@ -249,7 +248,7 @@ class UserMethodsCase(BaseCase):
                                  headers={"Content-Type": "application/json"}, data=create_user4_payload)
 
         self.assertEqual(201, create_user4_response.status_code,
-                         msg="Failed to create host user! Response code is {}".format(create_user4_response.status_code))
+                         msg="Failed to create user Sharik! Response code is {}".format(create_user4_response.status_code))
 
         # auth
         token_response4 = self.app.post('{base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']),
@@ -259,10 +258,10 @@ class UserMethodsCase(BaseCase):
         })
 
         # connect to room
-        connect_to_room2_response = self.app.post('{base_path}/room/{room_id}/connect'.format(base_path=app.config['API_BASE_PATH'], room_id=create_another_room_response.json['room_id']),
+        connect_to_room3_response = self.app.post('{base_path}/room/{room_id}/connect'.format(base_path=app.config['API_BASE_PATH'], room_id=create_another_room_response.json['room_id']),
                                        headers={"Content-Type": "application/json"}, data=user4_token_payload)
 
-        self.assertEqual(200, connect_to_room2_response.status_code, msg="Failed to connect Sharik to room! Response code is {}".format(connect_to_room2_response.status_code))
+        self.assertEqual(200, connect_to_room3_response.status_code, msg="Failed to connect Sharik to room! Response code is {}".format(connect_to_room3_response.status_code))
 
         # disconnect from room by host
         disconnect_host_from_room2_response = self.app.post('{base_path}/room/{room_id}/disconnect'.format(base_path=app.config['API_BASE_PATH'], room_id=create_another_room_response.json['room_id']),
