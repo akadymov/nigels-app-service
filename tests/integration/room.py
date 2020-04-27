@@ -32,15 +32,21 @@ class UserMethodsCase(BaseCase):
         self.assertEqual(201, create_host_response.status_code, msg="Failed to create host user! Response code is {}".format(create_host_response.status_code))
 
         # auth
-        token_response = self.app.post('{base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']),
+        host_token_response = self.app.post('{base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']),
                                        headers={"Content-Type": "application/json"}, data=host_auth_payload)
+
+        #get open rooms list when no one is created
+        no_rooms_list = self.app.get('{base_path}/room/all'.format(base_path=app.config['API_BASE_PATH']))
+
+        self.assertEqual(0, len(no_rooms_list.json['rooms']), msg="Incorrect number of open rooms ({}) in list when rooms are not created yet!".format(len(no_rooms_list.json['rooms'])))
+
         # create room
-        create_room1_payload = json.dumps({
-            "token": token_response.json['token'],
+        create_room_payload = json.dumps({
+            "token": host_token_response.json['token'],
             "room_name": room_name1
         })
         create_room_response = self.app.post('{base_path}/room'.format(base_path=app.config['API_BASE_PATH']),
-                                    headers={"Content-Type": "application/json"}, data=create_room1_payload)
+                                    headers={"Content-Type": "application/json"}, data=create_room_payload)
 
         self.assertEqual(username, create_room_response.json['host'], msg="Room host is invalid!")
         self.assertEqual(room_name1, create_room_response.json['room_name'], msg="Room name is invalid!")
@@ -49,9 +55,61 @@ class UserMethodsCase(BaseCase):
         self.assertIsNotNone(create_room_response.json['room_id'], msg='Room id is invalid!')
         self.assertIsNotNone(create_room_response.json['created'], msg='Room created date is invalid!')
 
+        # create another room before closing previous (not allowed)
+        repeat_create_room_response = self.app.post('{base_path}/room'.format(base_path=app.config['API_BASE_PATH']),
+                                    headers={"Content-Type": "application/json"}, data=create_room_payload)
+
+        self.assertEqual(403, repeat_create_room_response.status_code, msg='Bad response code ({}) when creating room having open one!'.format(repeat_create_room_response.status_code))
+
+        # connecting to hosted room (not allowed)
+        connect_to_hosted_room_response = self.app.post('{base_path}/room/{room_id}/connect'.format(base_path=app.config['API_BASE_PATH'], room_id=create_room_response.json['room_id']),
+                                       headers={"Content-Type": "application/json"}, data=host_auth_payload)
+
+        self.assertEqual(401, connect_to_hosted_room_response.status_code, msg="Bad response code ({}) when connecting to hosted room!".format(connect_to_hosted_room_response.status_code))
+
+        # create pseudo host
+        pseudo_host_username = "matroskin_twin"
+        pseudo_host_email = "twin@hack.org"
+        pseudo_room_name = "Prostokvashino_fishing"
+        pseudo_host_create_payload = json.dumps({
+            "email": pseudo_host_email,
+            "username": pseudo_host_username,
+            "password": password
+        })
+        pseudo_host_auth_payload = json.dumps({
+            "username": pseudo_host_username,
+            "password": password
+        })
+
+        pseudo_host_create_response = self.app.post('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']),
+                                 headers={"Content-Type": "application/json"}, data=pseudo_host_create_payload)
+
+        self.assertEqual(201, pseudo_host_create_response.status_code, msg="Failed to create pseudo host user! Response code is {}".format(create_host_response.status_code))
+
+        # pseudo host auth
+        pseudo_host_token_response = self.app.post('{base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']),
+                                       headers={"Content-Type": "application/json"}, data=pseudo_host_auth_payload)
+
+        # create pseudo room
+        create_pseudo_room_payload = json.dumps({
+            "token": pseudo_host_token_response.json['token'],
+            "room_name": pseudo_room_name
+        })
+        create_pseudo_room_response = self.app.post('{base_path}/room'.format(base_path=app.config['API_BASE_PATH']),
+                                    headers={"Content-Type": "application/json"}, data=create_pseudo_room_payload)
+
+        self.assertEqual(201, create_pseudo_room_response.status_code, msg="Failed to create pseudo room! Response code is {}".format(create_pseudo_room_response.status_code))
+
+        # connect to room being a host of open room (not allowed)
+        connect_to_hosted_room_response = self.app.post('{base_path}/room/{room_id}/connect'.format(base_path=app.config['API_BASE_PATH'], room_id=create_pseudo_room_response.json['room_id']),
+                                       headers={"Content-Type": "application/json"}, data=host_auth_payload)
+
+        self.assertEqual(401, connect_to_hosted_room_response.status_code, msg="Bad response code ({}) when connecting to room having open hosted one!".format(connect_to_hosted_room_response.status_code))
+
+
         # close room
         host_token_payload = json.dumps({
-            "token": token_response.json['token']
+            "token": host_token_response.json['token']
         })
         close_room_response = self.app.post('{base_path}/room/{room_id}/close'.format(base_path=app.config['API_BASE_PATH'],
                                         room_id=create_room_response.json['room_id']), headers={"Content-Type": "application/json"},
@@ -65,7 +123,7 @@ class UserMethodsCase(BaseCase):
 
         # create another room
         host_token_payload = json.dumps({
-            "token": token_response.json['token'],
+            "token": host_token_response.json['token'],
             "room_name": room_name2
         })
         create_another_room_response = self.app.post('{base_path}/room'.format(base_path=app.config['API_BASE_PATH']),
@@ -76,13 +134,13 @@ class UserMethodsCase(BaseCase):
         #get open rooms list
         open_rooms_response = self.app.get('{base_path}/room/all'.format(base_path=app.config['API_BASE_PATH']))
 
-        self.assertEqual(1, len(open_rooms_response.json['rooms']), msg="Incorrect number of open rooms ({}) in list!".format(len(open_rooms_response.json['rooms'])))
-        self.assertEqual(room_name2, open_rooms_response.json['rooms'][0]['room_name'], msg="Bad open room name ({})!".format(open_rooms_response.json['rooms'][0]['room_name']))
+        self.assertEqual(2, len(open_rooms_response.json['rooms']), msg="Incorrect number of open rooms ({}) in list!".format(len(open_rooms_response.json['rooms'])))
+        self.assertEqual(room_name2, open_rooms_response.json['rooms'][1]['room_name'], msg="Bad open room name ({})!".format(open_rooms_response.json['rooms'][0]['room_name']))
 
         #get all rooms list
         all_rooms_response = self.app.get('{base_path}/room/all?closed=Y'.format(base_path=app.config['API_BASE_PATH']))
 
-        self.assertEqual(2, len(all_rooms_response.json['rooms']), msg="Incorrect number of rooms ({}) in list!".format(len(all_rooms_response.json['rooms'])))
+        self.assertEqual(3, len(all_rooms_response.json['rooms']), msg="Incorrect number of rooms ({}) in list!".format(len(all_rooms_response.json['rooms'])))
 
         # create another user
         email2 = "Fedor@prostokvashino.ussr"
@@ -116,6 +174,12 @@ class UserMethodsCase(BaseCase):
 
         self.assertEqual(200, connect_to_room2_response.status_code, msg="Failed to connect dyadya Fedor to room! Response code is {}".format(connect_to_room2_response.status_code))
 
+        # connect to second room (not allowed)
+        connect_to_second_room_response = self.app.post('{base_path}/room/{room_id}/connect'.format(base_path=app.config['API_BASE_PATH'], room_id=create_pseudo_room_response.json['room_id']),
+                                       headers={"Content-Type": "application/json"}, data=user2_token_payload)
+
+        self.assertEqual(403, connect_to_second_room_response.status_code, msg="Bad response code ({}) when connecting to second room!".format(connect_to_second_room_response.status_code))
+
         # check room status
         # TODO (get-one-room-method is not ready)
 
@@ -131,6 +195,12 @@ class UserMethodsCase(BaseCase):
                                        headers={"Content-Type": "application/json"}, data=user2_token_payload)
 
         self.assertEqual(200, disconnect_from_room2_response.status_code, msg="Failed to disconnect from room! Response code is {}".format(disconnect_from_room2_response.status_code))
+
+        # repeat disconnect from room (allowed)
+        repeat_disconnect_from_room2_response = self.app.post('{base_path}/room/{room_id}/disconnect'.format(base_path=app.config['API_BASE_PATH'], room_id=create_another_room_response.json['room_id']),
+                                       headers={"Content-Type": "application/json"}, data=user2_token_payload)
+
+        self.assertEqual(200, repeat_disconnect_from_room2_response.status_code, msg="Failed to repeat disconnect from room! Response code is {}".format(repeat_disconnect_from_room2_response.status_code))
         
         # create more users
         email3 = "pechkin@prostokvashino.ussr"
@@ -199,6 +269,25 @@ class UserMethodsCase(BaseCase):
                                        headers={"Content-Type": "application/json"}, data=host_token_payload)
 
         self.assertEqual(403, disconnect_host_from_room2_response.status_code, msg="Bad response code when disconnecting host from room! Response code is {}".format(disconnect_host_from_room2_response.status_code))
+
+        # disconnect from closed room
+        close_room2_response = self.app.post('{base_path}/room/{room_id}/close'.format(base_path=app.config['API_BASE_PATH'],
+                                        room_id=create_another_room_response.json['room_id']), headers={"Content-Type": "application/json"},
+                                        data=host_token_payload)
+
+        self.assertEqual(201, close_room2_response.status_code, msg="Failed to close second room! Response code is {}".format(close_room2_response.status_code))
+
+        disconnect_from_closed_room_response = self.app.post('{base_path}/room/{room_id}/disconnect'.format(base_path=app.config['API_BASE_PATH'], room_id=create_another_room_response.json['room_id']),
+                                       headers={"Content-Type": "application/json"}, data=user2_token_payload)
+
+        self.assertEqual(400, disconnect_from_closed_room_response.status_code, msg="Bad response code when disconnecting from closed room! Response code is {}".format(disconnect_from_closed_room_response.status_code))
+
+        # close already closed room
+        close_already_closed_response = self.app.post('{base_path}/room/{room_id}/close'.format(base_path=app.config['API_BASE_PATH'],
+                                        room_id=create_another_room_response.json['room_id']), headers={"Content-Type": "application/json"},
+                                        data=host_token_payload)
+
+        self.assertEqual(400, close_already_closed_response.status_code, msg="Bad response code when closing already closed room! Response code is {}".format(close_room2_response.status_code))
 
 
     if __name__ == '__main__':
