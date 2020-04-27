@@ -5,7 +5,7 @@ from tests.base_case import BaseCase
 import json
 
 
-class UserModelCase(BaseCase):
+class UserMethodsCase(BaseCase):
 
     def test_successful_signup(self):
         # Given

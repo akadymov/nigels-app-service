@@ -23,7 +23,7 @@ Created with [Flask framework].
     $ flask db upgrade
 4. **[Optional]** Run tests by launching files in tests folder, for example:
     ```sh
-    $ python -m unittests tests/integration/user.py
+    $ python -m unittest tests/integration/user.py
 5. **[Optional]** You can also use all benefits of flask shell for running comands in python console. To get that with preconfigured imports run following commands:
     ```sh
     $ set FLASK_APP=nigels-app.py
