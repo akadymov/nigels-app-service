@@ -3,6 +3,7 @@ from app import db, login, app
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired)
+from flask import url_for, abort
 
 
 connections = db.Table(
@@ -70,6 +71,17 @@ class User(UserMixin, db.Model):
             return None
         user = User.query.filter_by(username=data['username']).first()
         return user
+
+    @staticmethod
+    def verify_api_auth_token(token):
+        if token is None:
+            abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(
+                post_token_url=url_for('user.post_token')))
+        requesting_user = User.verify_auth_token(token)
+        if requesting_user is None:
+            abort(401, 'Authentication token is invalid! You should request new one by POST {post_token_url}'.format(
+                post_token_url=url_for('user.post_token')))
+        return requesting_user
 
 
 @login.user_loader
@@ -165,10 +177,10 @@ class Game(db.Model):
                 username = User.query.filter_by(id=player.id).first().username
                 hand_score = HandScore.query.filter_by(hand_id=hand.id, player_id=player.id).first()
                 game_scores['hand #' + str(hand.serial_no)][username] = {}
-                game_scores['hand #' + str(hand.serial_no)][username]['bet_size'] = hand_score.bet_size
-                game_scores['hand #' + str(hand.serial_no)][username]['score'] = hand_score.score
-                game_scores['hand #' + str(hand.serial_no)][username]['bonus'] = hand_score.bonus
-                game_scores['total'][username]['score'] = game_scores['total'][username]['score'] + hand_score.score if hand_score.score else 0
+                game_scores['hand #' + str(hand.serial_no)][username]['bet_size'] = hand_score.bet_size if hand_score else None
+                game_scores['hand #' + str(hand.serial_no)][username]['score'] = hand_score.score if hand_score else None
+                game_scores['hand #' + str(hand.serial_no)][username]['bonus'] = hand_score.bonus if hand_score else None
+                game_scores['total'][username]['score'] = game_scores['total'][username]['score'] + hand_score.score if hand_score else 0
         return game_scores
 
 
@@ -277,6 +289,16 @@ class Hand(db.Model):
             made_bets = made_bets + hb.bet_size
         return made_bets
 
+    def all_bets_made(self):
+        hand_bets = HandScore.query.filter_by(hand_id=self.id).all()
+        players_count = Player.query.filter_by(game_id=self.game_id).count()
+        if players_count != len(hand_bets):
+            return False
+        for bet in hand_bets:
+            if bet.bet_size is None:
+                return False
+        return True
+
     def all_turns_made(self):
         hand_turns = Turn.query.filter_by(hand_id=self.id).all()
         return len(hand_turns) >= self.cards_per_player
@@ -324,9 +346,11 @@ class Hand(db.Model):
             for player in game_players:
                 turn_position = self.get_position(User.query.filter_by(id=player.user_id).first())
                 turn_players[turn_position] = player.user_id
-            turn_players_ordered = sorted(turn_players)
+            turn_players_ordered = []
+            for index in sorted(turn_players):
+                turn_players_ordered.append(turn_players[index])
             for player_id in turn_players_ordered:
-                player_card = TurnCard.query.filter_by(turn_id = curr_turn.id, player_id = player_id).first()
+                player_card = TurnCard.query.filter_by(turn_id=curr_turn.id, player_id=player_id).first()
                 if not player_card:
                     return User.query.filter_by(id=player_id).first()
         elif last_turn:
