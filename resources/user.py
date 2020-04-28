@@ -5,6 +5,7 @@ from app import app, db
 from app.models import User
 from datetime import datetime
 import re
+from app.email import send_password_reset_email
 
 
 user = Blueprint('user', __name__)
@@ -126,3 +127,45 @@ def edit_user(username):
         'last_seen': modified_user.last_seen,
         'about_me': modified_user.about_me
     }), 200
+
+
+@user.route('{base_path}/user/password/recover'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+def send_password_recovery():
+
+    email = request.json.get('email')
+    if not email:
+        abort(400, 'Invalid email!')
+    user = User.query.filter_by(email=email).first()
+    if not user:
+        abort(400, 'Invalid email!')
+    send_password_reset_email(user)
+
+    return jsonify('Password recovery link is sent!'), 200
+
+
+@user.route('{base_path}/user/password/reset'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+def reset_password():
+
+    new_password = request.json.get('new_password')
+    token = request.json.get('token')
+
+    user = User.verify_reset_password_token(token)
+    if not user:
+        abort(403, 'Invalid temporary token!')
+    if not new_password:
+        abort(400, 'Invalid new password!')
+
+    user.set_password(new_password)
+    db.session.commit()
+
+    return jsonify('New password is saved!'), 200
+
+
+@user.route('/user/reset_password/<token>', methods=['GET'])
+def reset_password_form(token):
+
+    user = User.verify_reset_password_token(token)
+    if not user:
+        return 'Token is invalid!'
+
+    return 'Here come reset password form (under construction)!'
