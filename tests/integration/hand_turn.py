@@ -4,7 +4,7 @@ from tests.base_case import BaseCase
 import json
 
 
-class HandMethodsCase(BaseCase):
+class HandTurnMethodsCase(BaseCase):
 
     def test_hands(self):  # Given
         email = "matroskin@prostokvashino.ussr"
@@ -311,7 +311,7 @@ class HandMethodsCase(BaseCase):
                              make_last_bet_response.status_code))
 
         last_betting_player_token_payload = json.loads(last_betting_player_token_payload)
-        last_betting_player_token_payload['bet_size'] = + 1
+        last_betting_player_token_payload['bet_size'] = last_betting_player_token_payload['bet_size'] + 1
         last_betting_player_token_payload = json.dumps(last_betting_player_token_payload)
 
         make_last_bet_response = self.app.post('{base_path}/game/{game_id}/hand/{hand_id}/turn/bet'.format(
@@ -368,7 +368,7 @@ class HandMethodsCase(BaseCase):
         for card in cards_on_second_player_hand:
             if card[1:] != first_turn_suit and card[1:] != 'd':
                 card_id = card
-                i = + 1
+                i = i + 1
         if i < len(cards_on_second_player_hand):  # means that player has at least one suited card
             put_invalid_second_card_response = self.app.post(
                 '{base_path}/game/{game_id}/hand/{hand_id}/turn/card/put/{card_id}'.format(
@@ -386,7 +386,7 @@ class HandMethodsCase(BaseCase):
         for card in cards_on_second_player_hand:
             if card[1:] == first_turn_suit and card[1:] != 'd':
                 card_id = card
-                i = + 1
+                i = i + 1
         if i > 0:  # means that player has at least one suited card
             put_valid_second_card_response = self.app.post(
                 '{base_path}/game/{game_id}/hand/{hand_id}/turn/card/put/{card_id}'.format(

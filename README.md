@@ -21,9 +21,9 @@ Created with [Flask framework].
     $ flask db init
     $ flask db migrate
     $ flask db upgrade
-4. **[Optional]** Run tests by launching files in tests folder, for example:
+4. **[Optional]** Run integration tests by running command:
     ```sh
-    $ python -m unittest tests/integration/user.py
+    $ python -m unittest tests/integration/united.py
 5. **[Optional]** You can also use all benefits of flask shell for running comands in python console. To get that with preconfigured imports run following commands:
     ```sh
     $ set FLASK_APP=nigels-app.py
