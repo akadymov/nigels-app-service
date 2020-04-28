@@ -22,3 +22,10 @@ class Config(object):
     DEFAULT_LANG = os.environ.get('DEFAULT_LANG') or 'en'
     MIN_PLAYER_TO_START = os.environ.get('MIN_PLAYER_TO_START') or 2
     MAX_PLAYER_TO_START = os.environ.get('MAX_PLAYER_TO_START') or 10
+    MAIL_SERVER = os.environ.get('MAIL_SERVER') or 'smtp.gmail.com'
+    MAIL_PORT = int(os.environ.get('MAIL_PORT') or 587)
+    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS') or True
+    MAIL_USE_SSL = os.environ.get('MAIL_USE_TLS') or False
+    MAIL_USERNAME = os.environ.get('MAIL_USERNAME') or 'nigelsappservice@gmail.com'
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD') or 'q034810211302'
+    ADMINS = ['nigelsappservice@gmail.com', 'a-kadymov@yandex.ru']
