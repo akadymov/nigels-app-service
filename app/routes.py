@@ -13,6 +13,7 @@ from resources.room import room
 from resources.game import game
 from resources.hand import hand
 from resources.turn import turn
+from resources.general import general
 
 
 # announcing api resources
@@ -21,6 +22,7 @@ app.register_blueprint(game)
 app.register_blueprint(room)
 app.register_blueprint(hand)
 app.register_blueprint(turn)
+app.register_blueprint(general)
 
 
 @app.route('/', methods=['GET'])

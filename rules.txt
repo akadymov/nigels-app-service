@@ -1,0 +1,10 @@
+The goal is to score maximum points during whole game, that is decomposed to 10-20 hands.
+
+Here are main rules:
+1. Every hand number of dealt cards changes by 1 (exception - hand with 1 card is played two times in a row): first, number of cards is reduced to 1, then - increased to initial number.
+2. Trump is changed every hand in strict order: diamonds -> hearts -> clubs -> spades -> no trump.
+3. There should be from 2 to 10 players to start game. Optimal is around 4-5.
+4. Every hand players make bet (zero or more) in counterclockwise order. Starting player is changed every hand counterclockwise. Sum of bet sizes should NOT equal number of dealt cards per player. That’s why there is restriction for last betting player only (someone should stay unhappy).
+5. After making all bets players start to put cards on table. No restriction in choosing card for first putting player, but every next player has to put card in suit of first card or trump suit. There are two exceptions: player can put any card if he/she doesn’t have suited card and can NOT put trump lower than already put trump when first card is NOT trump (you can not leak trumps). When every player puts one card (this is one turn of the hand) cards are took by player with highest suited card or trump. Keep in mind that Jack of trumps is highest card, and second is Nine! This rule applies only for trump suit.
+6. After all turns are made took number of turns are calculated. Every player gets points equally to number of took turns + 10 points IF number of took hands equals to made bet.
+7. In the end of game (after all hands) player is defined based on cumulative number of scored points.
