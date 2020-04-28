@@ -143,6 +143,15 @@ class GameMethodsCase(BaseCase):
                          msg="Bad response code when starting game with insufficient players! Response code is {}".format(
                              start_by_non_host_response.status_code))
 
+        # define positions before starting game
+        define_pos_b4_start_response = self.app.post(
+            '{base_path}/game/<game_id>/positions'.format(base_path=app.config['API_BASE_PATH']),
+            headers={"Content-Type": "application/json"}, data=host_token_payload)
+
+        self.assertEqual(400, define_pos_b4_start_response.status_code,
+                         msg="Bad response code when defining positions before game start! Response code is {}".format(
+                             define_pos_b4_start_response.status_code))
+
         # successful game start
         successful_start_response = self.app.post('{base_path}/game/start'.format(base_path=app.config['API_BASE_PATH']),
                                              headers={"Content-Type": "application/json"}, data=host_token_payload)
@@ -150,6 +159,10 @@ class GameMethodsCase(BaseCase):
         self.assertEqual(200, successful_start_response.status_code,
                          msg="Failed to start game by host! Response code is {}".format(
                              successful_start_response.status_code))
+        self.assertEqual('active', successful_start_response.json['status'], msg="Invalid game status ({}) after starting".format(successful_start_response.json['status']))
+        self.assertEqual(3, len(successful_start_response.json['players']), msg="Incorrect game players list after starting")
+        self.assertIsNotNone(successful_start_response.json['game_id'], msg="No game id in response after starting")
+        game_id = successful_start_response.json['game_id']
 
         # starting game when one is already started
         repeat_start_response = self.app.post('{base_path}/game/start'.format(base_path=app.config['API_BASE_PATH']),
@@ -158,6 +171,36 @@ class GameMethodsCase(BaseCase):
         self.assertEqual(403, repeat_start_response.status_code,
                          msg="Bad response code when starting second game in a row! Response code is {}".format(
                              repeat_start_response.status_code))
+
+        # define positions by non-host (not allowed)
+        define_pos_by_nonhost_response = self.app.post('{base_path}/game/{game_id}/positions'.format(base_path=app.config['API_BASE_PATH'], game_id=game_id),
+                                             headers={"Content-Type": "application/json"}, data=user3_token_payload)
+
+        self.assertEqual(403, define_pos_by_nonhost_response.status_code, msg="Bad response code ({}) when defining positions by non host!".format(define_pos_by_nonhost_response.status_code))
+
+        # define positions by host
+        define_pos_by_host_response = self.app.post('{base_path}/game/{game_id}/positions'.format(base_path=app.config['API_BASE_PATH'], game_id=game_id),
+                                             headers={"Content-Type": "application/json"}, data=host_token_payload)
+
+        self.assertEqual(200, define_pos_by_host_response.status_code, msg="Failed to define positions! Response code is {}".format(define_pos_by_host_response.status_code))
+        self.assertEqual(
+            len(successful_start_response.json['players']), len(define_pos_by_host_response.json['players']),
+            msg="Players count after defining positions ({}) differs with game players count!".format(len(define_pos_by_host_response.json['players']))
+        )
+
+        # repeat define positions
+        repeat_define_pos_response = self.app.post(
+            '{base_path}/game/{game_id}/positions'.format(base_path=app.config['API_BASE_PATH'], game_id=game_id),
+            headers={"Content-Type": "application/json"}, data=host_token_payload)
+
+        self.assertEqual(403, repeat_define_pos_response.status_code,
+                         msg="Bad response code when repeating defining positions! Response code is {}".format(
+                             repeat_define_pos_response.status_code))
+        self.assertEqual(
+            len(successful_start_response.json['players']), len(define_pos_by_host_response.json['players']),
+            msg="Players count after defining positions ({}) differs with game players count!".format(
+                len(define_pos_by_host_response.json['players']))
+        )
 
         # finish by non-host (not allowed)
         finish_by_non_host_response = self.app.post('{base_path}/game/finish'.format(base_path=app.config['API_BASE_PATH']),
@@ -170,6 +213,7 @@ class GameMethodsCase(BaseCase):
         # successful game finish
         successful_finish_response = self.app.post('{base_path}/game/finish'.format(base_path=app.config['API_BASE_PATH']),
                                              headers={"Content-Type": "application/json"}, data=host_token_payload)
+        self.assertEqual('finished', successful_finish_response.json['status'], msg="Invalid game status ({}) after finishing".format(successful_finish_response.json['status']))
 
         self.assertEqual(200, successful_finish_response.status_code,
                          msg="Failed to finish game by host! Response code is {}".format(

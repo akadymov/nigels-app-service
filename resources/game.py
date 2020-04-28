@@ -123,6 +123,9 @@ def positions(game_id):
     requesting_user = User.verify_api_auth_token(token)
 
     game = Game.query.filter_by(id=game_id).first()
+    if not game:
+        abort(400, 'Game is not started yet!')
+
     room = Room.query.filter_by(id=game.room_id).first()
     if room.host != requesting_user:
         abort(403, 'Only host can shuffle positions!')

@@ -177,10 +177,10 @@ class Game(db.Model):
                 username = User.query.filter_by(id=player.id).first().username
                 hand_score = HandScore.query.filter_by(hand_id=hand.id, player_id=player.id).first()
                 game_scores['hand #' + str(hand.serial_no)][username] = {}
-                game_scores['hand #' + str(hand.serial_no)][username]['bet_size'] = hand_score.bet_size
-                game_scores['hand #' + str(hand.serial_no)][username]['score'] = hand_score.score
-                game_scores['hand #' + str(hand.serial_no)][username]['bonus'] = hand_score.bonus
-                game_scores['total'][username]['score'] = game_scores['total'][username]['score'] + hand_score.score if hand_score.score else 0
+                game_scores['hand #' + str(hand.serial_no)][username]['bet_size'] = hand_score.bet_size if hand_score else None
+                game_scores['hand #' + str(hand.serial_no)][username]['score'] = hand_score.score if hand_score else None
+                game_scores['hand #' + str(hand.serial_no)][username]['bonus'] = hand_score.bonus if hand_score else None
+                game_scores['total'][username]['score'] = game_scores['total'][username]['score'] + hand_score.score if hand_score else 0
         return game_scores
 
 
@@ -291,6 +291,9 @@ class Hand(db.Model):
 
     def all_bets_made(self):
         hand_bets = HandScore.query.filter_by(hand_id=self.id).all()
+        players_count = Player.query.filter_by(game_id=self.game_id).count()
+        if players_count != len(hand_bets):
+            return False
         for bet in hand_bets:
             if bet.bet_size is None:
                 return False
