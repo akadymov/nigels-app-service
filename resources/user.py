@@ -148,7 +148,8 @@ def reset_password():
 
     new_password = request.json.get('new_password')
     token = request.json.get('token')
-
+    if not re.match(app.config['PASSWORD_REGEXP'], new_password):
+        abort(400, 'Password does not satisfy security requirements!')
     user = User.verify_reset_password_token(token)
     if not user:
         abort(403, 'Invalid temporary token!')
