@@ -176,13 +176,16 @@ def status(game_id, hand_id):
                 'username': user.username,
                 'position': hand.get_position(user),
                 'bet_size': user_scores.bet_size if user_scores else None,
-                'took_turns': user_scores.took_turns() if user_scores else 0
+                'took_turns': user_scores.took_turns() if user_scores else 0,
+                'cards_on_hand': len(hand.get_user_current_hand(user))
             })
 
     current_turn = hand.get_current_turn(closed=True)
+    next_player = hand.next_card_putting_user()
 
     return jsonify({
             'hand_id': hand.id,
+            'next_acting_player': next_player.username if next_player else None,
             'game_id': game.id,
             'room_id': game.room_id,
             'hand_serial_no': hand.serial_no,
