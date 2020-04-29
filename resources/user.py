@@ -5,7 +5,7 @@ from app import app, db
 from app.models import User
 from datetime import datetime
 import re
-from app.email import send_password_reset_email
+from app.email import send_password_reset_email, send_registration_notification
 
 
 user = Blueprint('user', __name__)
@@ -45,6 +45,7 @@ def create_user():
     user.set_password(password)
     db.session.add(user)
     db.session.commit()
+    send_registration_notification(user)
     return \
         jsonify({
             'username': user.username.casefold(),
