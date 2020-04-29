@@ -138,13 +138,18 @@ def get_hand_cards(game_id, hand_id):
     if h is None or h.is_closed == 1:
         abort(403, 'Hand {hand_id} is closed or does not exist!'.format(hand_id=hand_id))
 
+    if str(request.args.get('burned')).lower() == 'y':
+        cards = h.get_user_initial_hand(requesting_user)
+    else:
+        cards = h.get_user_current_hand(requesting_user)
+
     return jsonify({
         'game_id': game_id,
         'hand_id': hand_id,
         'cards_per_player': h.cards_per_player,
         'trump': h.trump,
         'player': requesting_user.username,
-        'cards_in_hand': h.get_user_current_hand(requesting_user)
+        'cards_in_hand': cards
     }), 200
 
 

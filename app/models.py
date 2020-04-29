@@ -247,6 +247,18 @@ class Hand(db.Model):
             initial_hand.append(card.card_id)
         return initial_hand
 
+    def get_user_current_hand(self, user):
+        initial_cards = self.get_user_initial_hand(user)
+        burned_cards = TurnCard.query.filter_by(hand_id=self.id, player_id=user.id)
+        burned_cards_list = []
+        for card in burned_cards:
+            burned_cards_list.append(card.card_id)
+        current_hand = []
+        for card in initial_cards:
+            if card not in burned_cards_list:
+                current_hand.append(card)
+        return current_hand
+
     def is_registered(self, user):
         hand_players = Player.query.filter_by(game_id=self.game_id).all()
         for player in hand_players:
@@ -276,14 +288,6 @@ class Hand(db.Model):
         for tc in turned_cards_obj:
             turned_cards.append(tc.card_id)
         return turned_cards
-
-    def get_user_current_hand(self, user):
-        initial_hand = DealtCards.query.filter_by(hand_id=self.id, player_id=user.id).all()
-        current_hand = []
-        for card in initial_hand:
-            if not TurnCard.query.filter_by(hand_id=self.id, card_id=card.card_id).all():
-                current_hand.append(card.card_id)
-        return current_hand
 
     def user_has_suit(self, user, suit):
         user_hand = self.get_user_current_hand(user)
