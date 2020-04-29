@@ -225,7 +225,7 @@ class HandTurnMethodsCase(BaseCase):
             betting_player_token_payload = user3_token_payload
 
         cards_on_first_player_hand_response = self.app.post(
-            '{base_path}/game/{game_id}/hand/{hand_id}/get'.format(base_path=app.config['API_BASE_PATH'],
+            '{base_path}/game/{game_id}/hand/{hand_id}/cards'.format(base_path=app.config['API_BASE_PATH'],
                                                                    game_id=game_id, hand_id=hand_id),
             headers={"Content-Type": "application/json"}, data=betting_player_token_payload)
         cards_on_first_player_hand = cards_on_first_player_hand_response.json['cards_in_hand']
@@ -269,7 +269,7 @@ class HandTurnMethodsCase(BaseCase):
             second_betting_player_token_payload = user3_token_payload
 
         cards_on_second_player_hand_response = self.app.post(
-            '{base_path}/game/{game_id}/hand/{hand_id}/get'.format(base_path=app.config['API_BASE_PATH'],
+            '{base_path}/game/{game_id}/hand/{hand_id}/cards'.format(base_path=app.config['API_BASE_PATH'],
                                                                    game_id=game_id, hand_id=hand_id),
             headers={"Content-Type": "application/json"}, data=second_betting_player_token_payload)
         cards_on_second_player_hand = cards_on_second_player_hand_response.json['cards_in_hand']
@@ -293,7 +293,7 @@ class HandTurnMethodsCase(BaseCase):
             last_betting_player_token_payload = user3_token_payload
 
         cards_on_last_player_hand_response = self.app.post(
-            '{base_path}/game/{game_id}/hand/{hand_id}/get'.format(base_path=app.config['API_BASE_PATH'],
+            '{base_path}/game/{game_id}/hand/{hand_id}/cards'.format(base_path=app.config['API_BASE_PATH'],
                                                                    game_id=game_id, hand_id=hand_id),
             headers={"Content-Type": "application/json"}, data=last_betting_player_token_payload)
         cards_on_last_player_hand = cards_on_last_player_hand_response.json['cards_in_hand']
