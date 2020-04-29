@@ -180,7 +180,7 @@ class HandTurnMethodsCase(BaseCase):
 
         # get cards on hand
         cards_on__host_hand_response = self.app.post(
-            '{base_path}/game/{game_id}/hand/{hand_id}/get'.format(base_path=app.config['API_BASE_PATH'],
+            '{base_path}/game/{game_id}/hand/{hand_id}/cards'.format(base_path=app.config['API_BASE_PATH'],
                                                                    game_id=game_id, hand_id=hand_id),
             headers={"Content-Type": "application/json"}, data=host_token_payload)
 

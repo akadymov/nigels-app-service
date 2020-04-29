@@ -156,7 +156,7 @@ class Game(db.Model):
         return Player.query.filter_by(game_id=self.id, user_id=user.id).first().position
 
     def has_open_hands(self):
-        return Hand.query.filter_by(game_id=self.id, is_closed=0).order_by(Hand.serial_no.desc()).first()
+        return Hand.query.filter_by(game_id=self.id, is_closed=0).order_by(Hand.serial_no.desc()).first() is not None
 
     def last_open_hand(self):
         return Hand.query.filter_by(game_id=self.id, is_closed=0).order_by(Hand.serial_no.desc()).first()
@@ -319,9 +319,11 @@ class Hand(db.Model):
         hand_turns = Turn.query.filter_by(hand_id=self.id).all()
         return len(hand_turns) >= self.cards_per_player
 
-    def get_current_turn(self):
+    def get_current_turn(self, closed=False):
         players_count = Player.query.filter_by(game_id=self.game_id).count()
-        hand_turns = Turn.query.filter_by(hand_id=self.id).all()
+        hand_turns = Turn.query.filter_by(hand_id=self.id).order_by(Turn.serial_no.desc()).all()
+        if closed:
+            return hand_turns[0]
         for ht in hand_turns:
             turn_cards_count = TurnCard.query.filter_by(turn_id=ht.id).count()
             if turn_cards_count != players_count:
@@ -394,6 +396,9 @@ class HandScore(db.Model):
 
     def __repr__(self):
         return "<Player {}'s score in hand {}>".format(User.query.filter_by(id=self.player_id).first().username, self.hand_id)
+
+    def took_turns(self):
+        return Turn.query.filter_by(hand_id=self.hand_id, took_user_id=self.player_id).count()
 
     def calculate_current_score(self):
         took_turns = Turn.query.filter_by(hand_id=self.hand_id, took_user_id=self.player_id).count()

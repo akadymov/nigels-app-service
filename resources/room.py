@@ -150,3 +150,34 @@ def disconnect(room_id):
     target_room.disconnect(requesting_user)
 
     return jsonify(200)
+
+
+@room.route('{base_path}/room/<room_id>'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+def status(room_id):
+    room = Room.query.filter_by(id=room_id).first()
+    if not room:
+        abort(404, 'Room with specified id is not found!')
+
+    connected_users = room.connected_users
+    users_json = []
+    for u in connected_users:
+        users_json.append(u.username)
+    games = room.games
+    games_json = []
+    for game in games:
+        games_json.append({
+            'id': game.id,
+            'status': 'open' if game.finished is None else 'finished'
+        })
+
+    return jsonify({
+            'room_id': room.id,
+            'room_name': room.room_name,
+            'host': room.host.username,
+            'status': 'open' if room.closed is None else 'closed',
+            'created': room.created,
+            'closed': room.closed,
+            'connected_user_list': users_json,
+            'connect': url_for('room.connect', room_id=room.id),
+            'games': games_json
+    }), 200

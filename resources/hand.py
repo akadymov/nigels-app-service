@@ -2,7 +2,7 @@
 
 from flask import url_for, request, jsonify, abort, Blueprint
 from app import app, db
-from app.models import User, Room, Game, Player, Hand, DealtCards
+from app.models import User, Room, Game, Player, Hand, DealtCards, HandScore
 import random
 from math import floor
 
@@ -122,7 +122,7 @@ def deal_cards(game_id):
     ), 200
 
 
-@hand.route('{base_path}/game/<game_id>/hand/<hand_id>/get'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@hand.route('{base_path}/game/<game_id>/hand/<hand_id>/cards'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
 def get_hand_cards(game_id, hand_id):
 
     token = request.json.get('token')
@@ -145,4 +145,46 @@ def get_hand_cards(game_id, hand_id):
         'trump': h.trump,
         'player': requesting_user.username,
         'cards_in_hand': h.get_user_current_hand(requesting_user)
+    }), 200
+
+
+@hand.route('{base_path}/game/<game_id>/hand/<hand_id>'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+def status(game_id, hand_id):
+
+    game = Game.query.filter_by(id=game_id).first()
+    if not game:
+        abort(404, 'Game with specified id is not found!')
+
+    hand = Hand.query.filter_by(id=hand_id).first()
+    if not hand:
+        abort(404, 'Hand with specified id is not found')
+    if int(hand.game_id) != int(game_id):
+        abort(404, 'Specified hand is not part of specified game!')
+
+    players = Player.query.filter_by(game_id=game_id).order_by(Player.position).all()
+    players_enriched = []
+    for player in players:
+        user = User.query.filter_by(id=player.user_id).first()
+        if user:
+            user_scores = HandScore.query.filter_by(player_id=user.id).first()
+            players_enriched.append({
+                'username': user.username,
+                'position': hand.get_position(user),
+                'bet_size': user_scores.bet_size if user_scores else None,
+                'took_turns': user_scores.took_turns() if user_scores else 0
+            })
+
+    current_turn = hand.get_current_turn(closed=True)
+
+    return jsonify({
+            'hand_id': hand.id,
+            'game_id': game.id,
+            'room_id': game.room_id,
+            'hand_serial_no': hand.serial_no,
+            'cards_per_player': hand.cards_per_player,
+            'trump': hand.trump,
+            'starting_player': hand.starting_player,
+            'hand_is_closed': hand.is_closed,
+            'players': players_enriched,
+            'current_turn_serial_no': current_turn.serial_no if current_turn else None
     }), 200
