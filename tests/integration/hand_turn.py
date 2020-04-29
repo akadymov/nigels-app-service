@@ -241,6 +241,32 @@ class HandTurnMethodsCase(BaseCase):
         self.assertEqual(200, make_bet_response.status_code,
                          msg="Failed to make bet! Response code is {}".format(make_bet_response.status_code))
 
+        # game status
+        game_status_response = self.app.get('{base_path}/game/{game_id}'.format(
+                base_path=app.config['API_BASE_PATH'],
+                game_id=game_id
+            ), headers={"Content-Type": "application/json"})
+
+        self.assertEqual(200, game_status_response.status_code, msg="Failed to get game status! Response code is {}".format(game_status_response.status_code))
+        self.assertIsNotNone(game_status_response.json['current_hand_id'],
+                          msg="Invalid field 'current_hand_id' in game status after making first bet!")
+        self.assertIsNotNone(game_status_response.json['current_hand_serial_no'],
+                          msg="Invalid field 'current_hand_serial_no' in game status after making first bet!")
+        self.assertIsNone(game_status_response.json['finished'],
+                          msg="Invalid field 'finished' in game status after making first bet!")
+        self.assertEqual(game_id, game_status_response.json['game_id'],
+                          msg="Invalid field 'game_id' in game status after making first bet!")
+        self.assertEqual(len(successful_start_response.json['players']), len(game_status_response.json['players']),
+                          msg="Invalid field 'players' in game status after making first bet!")
+        self.assertEqual(create_room_response.json['room_id'], game_status_response.json['room_id'],
+                          msg="Invalid field 'room_id' in game status after making first bet!")
+        self.assertIsNotNone(game_status_response.json['started'],
+                          msg="Invalid field 'started' in game status after making first bet!")
+        self.assertEqual('open', game_status_response.json['status'],
+                          msg="Invalid field 'status' in game status after making first bet!")
+        self.assertEqual(0, game_status_response.json['played_hands_count'],
+                          msg="Invalid field 'played_hands_count' in game status after making first bet!")
+
         # put first card before making all bets
         put_card_b4_bets_response = self.app.post(
             '{base_path}/game/{game_id}/hand/{hand_id}/turn/card/put/{card_id}'.format(
@@ -361,6 +387,32 @@ class HandTurnMethodsCase(BaseCase):
                          "Failed to put first card! Response code is {}".format(
                              put_first_card_response.status_code
                          ))
+
+        # game status
+        game_status_response = self.app.get('{base_path}/game/{game_id}'.format(
+                base_path=app.config['API_BASE_PATH'],
+                game_id=game_id
+            ), headers={"Content-Type": "application/json"})
+
+        self.assertEqual(200, game_status_response.status_code, msg="Failed to get game status! Response code is {}".format(game_status_response.status_code))
+        self.assertIsNotNone(game_status_response.json['current_hand_id'],
+                          msg="Invalid field 'current_hand_id' in game status after putting first card!")
+        self.assertIsNotNone(game_status_response.json['current_hand_serial_no'],
+                          msg="Invalid field 'current_hand_serial_no' in game status after putting first card!")
+        self.assertIsNone(game_status_response.json['finished'],
+                          msg="Invalid field 'finished' in game status after putting first card!")
+        self.assertEqual(game_id, game_status_response.json['game_id'],
+                          msg="Invalid field 'game_id' in game status after putting first card!")
+        self.assertEqual(len(successful_start_response.json['players']), len(game_status_response.json['players']),
+                          msg="Invalid field 'players' in game status after putting first card!")
+        self.assertEqual(create_room_response.json['room_id'], game_status_response.json['room_id'],
+                          msg="Invalid field 'room_id' in game status after putting first card!")
+        self.assertIsNotNone(game_status_response.json['started'],
+                          msg="Invalid field 'started' in game status after putting first card!")
+        self.assertEqual('open', game_status_response.json['status'],
+                          msg="Invalid field 'status' in game status after putting first card!")
+        self.assertEqual(0, game_status_response.json['played_hands_count'],
+                          msg="Invalid field 'played_hands_count' in game status after putting first card!")
 
         # Put invalid second card
         card_id = cards_on_second_player_hand[0]

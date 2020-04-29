@@ -209,15 +209,24 @@ class GameMethodsCase(BaseCase):
             ), headers={"Content-Type": "application/json"})
 
         self.assertEqual(200, game_status_response.status_code, msg="Failed to get game status! Response code is {}".format(game_status_response.status_code))
-        self.assertIsNone(game_status_response.json['current_hand_id'])
-        self.assertIsNone(game_status_response.json['current_hand_serial_no'])
-        self.assertIsNone(game_status_response.json['finished'])
-        self.assertEqual(game_id, game_status_response.json['game_id'])
-        self.assertEqual(len(successful_start_response.json['players']), len(game_status_response.json['players']))
-        self.assertEqual(create_room_response.json['room_id'], game_status_response.json['room_id'])
-        self.assertIsNotNone(game_status_response.json['started'])
-        self.assertEqual('open', game_status_response.json['status'])
-        self.assertEqual(0, game_status_response.json['played_hands_count'])
+        self.assertIsNone(game_status_response.json['current_hand_id'],
+                          msg="Invalid field 'current_hand_id' in game status after defining positions!")
+        self.assertIsNone(game_status_response.json['current_hand_serial_no'],
+                          msg="Invalid field 'current_hand_serial_no' in game status after defining positions!")
+        self.assertIsNone(game_status_response.json['finished'],
+                          msg="Invalid field 'finished' in game status after defining positions!")
+        self.assertEqual(game_id, game_status_response.json['game_id'],
+                          msg="Invalid field 'game_id' in game status after defining positions!")
+        self.assertEqual(len(successful_start_response.json['players']), len(game_status_response.json['players']),
+                          msg="Invalid field 'players' in game status after defining positions!")
+        self.assertEqual(create_room_response.json['room_id'], game_status_response.json['room_id'],
+                          msg="Invalid field 'room_id' in game status after defining positions!")
+        self.assertIsNotNone(game_status_response.json['started'],
+                          msg="Invalid field 'started' in game status after defining positions!")
+        self.assertEqual('open', game_status_response.json['status'],
+                          msg="Invalid field 'status' in game status after defining positions!")
+        self.assertEqual(0, game_status_response.json['played_hands_count'],
+                          msg="Invalid field 'played_hands_count' in game status after defining positions!")
 
 
         # finish by non-host (not allowed)
@@ -252,15 +261,24 @@ class GameMethodsCase(BaseCase):
             ), headers={"Content-Type": "application/json"})
 
         self.assertEqual(200, game_status_response.status_code, msg="Failed to get game status! Response code is {}".format(game_status_response.status_code))
-        self.assertIsNone(game_status_response.json['current_hand_id'])
-        self.assertIsNone(game_status_response.json['current_hand_serial_no'])
-        self.assertIsNotNone(game_status_response.json['finished'])
-        self.assertEqual(game_id, game_status_response.json['game_id'])
-        self.assertEqual(len(successful_start_response.json['players']), len(game_status_response.json['players']))
-        self.assertEqual(create_room_response.json['room_id'], game_status_response.json['room_id'])
-        self.assertIsNotNone(game_status_response.json['started'])
-        self.assertEqual('finished', game_status_response.json['status'])
-        self.assertEqual(0, game_status_response.json['played_hands_count'])
+        self.assertIsNone(game_status_response.json['current_hand_id'],
+                          msg="Invalid field 'current_hand_id' in game status after defining positions!")
+        self.assertIsNone(game_status_response.json['current_hand_serial_no'],
+                          msg="Invalid field 'current_hand_serial_no' in game status after defining positions!")
+        self.assertIsNotNone(game_status_response.json['finished'],
+                          msg="Invalid field 'finished' in game status after defining positions!")
+        self.assertEqual(game_id, game_status_response.json['game_id'],
+                          msg="Invalid field 'game_id' in game status after defining positions!")
+        self.assertEqual(len(successful_start_response.json['players']), len(game_status_response.json['players']),
+                          msg="Invalid field 'players' in game status after defining positions!")
+        self.assertEqual(create_room_response.json['room_id'], game_status_response.json['room_id'],
+                          msg="Invalid field 'room_id' in game status after defining positions!")
+        self.assertIsNotNone(game_status_response.json['started'],
+                          msg="Invalid field 'started' in game status after defining positions!")
+        self.assertEqual('finished', game_status_response.json['status'],
+                          msg="Invalid field 'status' in game status after defining positions!")
+        self.assertEqual(0, game_status_response.json['played_hands_count'],
+                          msg="Invalid field 'played_hands_count' in game status after defining positions!")
 
 
 if __name__ == '__main__':
