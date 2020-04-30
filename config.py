@@ -17,7 +17,7 @@ class Config(object):
     PASSWORD_REGEXP = os.environ.get('PASSWORD_REGEXP') or "(?=^.{8,}$)(?=.*[a-z])(?=.*[A-Z])(?!.*\s).*$"
     EMAIL_REGEXP = os.environ.get('EMAIL_REGEXP') or "(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
     TOKEN_LIFETIME = os.environ.get('TOKEN_LIFETIME') or 86400  # 24 hours
-    API_BASE_PATH = os.environ.get('API_BASE_PATH') or '/api/v0'
+    API_BASE_PATH = os.environ.get('API_BASE_PATH') or '/api/v1'
     MAX_USERS_PER_ROOM = os.environ.get('MAX_USERS_PER_ROOM') or 10
     DEFAULT_LANG = os.environ.get('DEFAULT_LANG') or 'en'
     MIN_PLAYER_TO_START = os.environ.get('MIN_PLAYER_TO_START') or 2
@@ -27,5 +27,5 @@ class Config(object):
     MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS') or True
     MAIL_USE_SSL = os.environ.get('MAIL_USE_TLS') or False
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME') or 'nigelsappservice@gmail.com'
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD') or 'q034810211302'
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     ADMINS = ['nigelsappservice@gmail.com', 'a-kadymov@yandex.ru']
