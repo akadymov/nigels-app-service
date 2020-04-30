@@ -2,7 +2,7 @@
 
 from flask import url_for, request, jsonify, abort, Blueprint
 from app import app, db
-from app.models import User, Room, Game, Player
+from app.models import User, Room, Game, Player, Hand
 from datetime import datetime
 import random
 
@@ -151,4 +151,37 @@ def positions(game_id):
     return jsonify({
         'game_id': game_id,
         'players': players_list
+    }), 200
+
+
+@game.route('{base_path}/game/<game_id>'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+def status(game_id):
+    game = Game.query.filter_by(id=game_id).first()
+    if not game:
+        abort(404, 'Game with specified id is not found!')
+
+    players = Player.query.filter_by(game_id=game_id).order_by(Player.position).all()
+    players_enriched = []
+    for player in players:
+        user = User.query.filter_by(id=player.user_id).first()
+        if user:
+            players_enriched.append({
+                'username': user.username,
+                'position': player.position
+            })
+
+    current_hand = game.last_open_hand()
+    played_hands_count = Hand.query.filter_by(game_id=game_id, is_closed=1).count()
+
+    return jsonify({
+            'game_id': game.id,
+            'room_id': game.room_id,
+            'current_hand_id': current_hand.id if current_hand else None,
+            'current_hand_serial_no': current_hand.serial_no if current_hand else None,
+            'current_hand_location': url_for('hand.status', hand_id=current_hand.id, game_id=game_id) if current_hand else None,
+            'played_hands_count': played_hands_count,
+            'started': game.started,
+            'status': 'open' if game.finished is None else 'finished',
+            'finished': game.finished,
+            'players': players_enriched
     }), 200
