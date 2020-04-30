@@ -414,6 +414,36 @@ class HandTurnMethodsCase(BaseCase):
         self.assertEqual(0, game_status_response.json['played_hands_count'],
                           msg="Invalid field 'played_hands_count' in game status after putting first card!")
 
+        # hand status after first card in turn
+        hand_status_response = self.app.get('{base_path}/game/{game_id}/hand/{hand_id}'.format(
+                base_path=app.config['API_BASE_PATH'],
+                game_id=game_id,
+                hand_id=hand_id
+            ), headers={"Content-Type": "application/json"}
+        )
+
+        self.assertEqual(200, hand_status_response.status_code, msg="Failed to get game status! Response code is {}".format(hand_status_response.status_code))
+        self.assertEqual(hand_id, hand_status_response.json['hand_id'],
+                          msg="Invalid field 'hand_id' in hand status after putting first card!")
+        self.assertIsNotNone(hand_status_response.json['next_acting_player'],
+                          msg="Invalid field 'next_acting_player' in hand status after putting first card!")
+        self.assertIsNotNone(hand_status_response.json['starting_player'],
+                          msg="Invalid field 'starting_player' in hand status after putting first card!")
+        self.assertEqual(1, hand_status_response.json['hand_serial_no'],
+                          msg="Invalid field 'hand_serial_no' in hand status after putting first card!")
+        self.assertEqual(game_id, hand_status_response.json['game_id'],
+                          msg="Invalid field 'game_id' in hand status after putting first card!")
+        self.assertEqual(create_room_response.json['room_id'], hand_status_response.json['room_id'],
+                          msg="Invalid field 'room_id' in hand status after putting first card!")
+        self.assertEqual('d', hand_status_response.json['trump'],
+                          msg="Invalid field 'trump' in hand status after putting first card!")
+        self.assertEqual(0, hand_status_response.json['hand_is_closed'],
+                          msg="Invalid field 'hand_is_closed' in hand status after putting first card!")
+        self.assertEqual(len(successful_start_response.json['players']), len(hand_status_response.json['players']),
+                          msg="Invalid field 'players' in hand status after putting first card!")
+        self.assertEqual(1, hand_status_response.json['current_turn_serial_no'],
+                          msg="Invalid field 'current_turn_serial_no' in hand status after putting first card!")
+
         # Put invalid second card
         card_id = cards_on_second_player_hand[0]
         i = 0
@@ -439,16 +469,74 @@ class HandTurnMethodsCase(BaseCase):
             if card[1:] == first_turn_suit and card[1:] != 'd':
                 card_id = card
                 i = i + 1
-        if i > 0:  # means that player has at least one suited card
-            put_valid_second_card_response = self.app.post(
-                '{base_path}/game/{game_id}/hand/{hand_id}/turn/card/put/{card_id}'.format(
-                    base_path=app.config['API_BASE_PATH'], game_id=game_id, hand_id=hand_id, card_id=card_id),
-                headers={"Content-Type": "application/json"}, data=second_betting_player_token_payload)
+        put_valid_second_card_response = self.app.post(
+            '{base_path}/game/{game_id}/hand/{hand_id}/turn/card/put/{card_id}'.format(
+                base_path=app.config['API_BASE_PATH'], game_id=game_id, hand_id=hand_id, card_id=card_id),
+            headers={"Content-Type": "application/json"}, data=second_betting_player_token_payload)
 
-            self.assertEqual(200, put_valid_second_card_response.status_code,
-                             "Failed to put second valid card ({}) having '{}' suit in turn! Response code is {}".format(
+        if i > 0:  # means that player has at least one suited card
+            msg = "Failed to put second valid card ({}) having '{}' suit in turn! Response code is {}".format(
                                  card_id, first_turn_suit, put_valid_second_card_response.status_code
-                             ))
+                             )
+        else:  # player does not have any suited card
+            msg = "Failed to put second valid card ({}) not having no card of turn suit ('{}')! Response code is {}".format(
+                                 card_id, first_turn_suit, put_valid_second_card_response.status_code
+                             )
+        self.assertEqual(200, put_valid_second_card_response.status_code, msg=msg)
+
+        # Put valid last card
+        card_id = cards_on_last_player_hand[0]
+        i = 0
+        for card in cards_on_last_player_hand:
+            if card[1:] == first_turn_suit and card[1:] != 'd':
+                card_id = card
+                i = i + 1
+        put_valid_last_card_response = self.app.post(
+            '{base_path}/game/{game_id}/hand/{hand_id}/turn/card/put/{card_id}'.format(
+                base_path=app.config['API_BASE_PATH'], game_id=game_id, hand_id=hand_id, card_id=card_id),
+            headers={"Content-Type": "application/json"}, data=last_betting_player_token_payload)
+
+        if i > 0:  # means that player has at least one suited card
+            msg = "Failed to put second valid card ({}) having '{}' suit in turn! Response code is {}".format(
+                                 card_id, first_turn_suit, put_valid_last_card_response.status_code
+                             )
+        else:  # player does not have any suited card
+            msg = "Failed to put second valid card ({}) not having no card of turn suit ('{}')! Response code is {}".format(
+                                 card_id, first_turn_suit, put_valid_last_card_response.status_code
+                             )
+        self.assertEqual(200, put_valid_last_card_response.status_code, msg=msg)
+
+
+
+        # hand status after first turn
+        hand_status_response = self.app.get('{base_path}/game/{game_id}/hand/{hand_id}'.format(
+                base_path=app.config['API_BASE_PATH'],
+                game_id=game_id,
+                hand_id=hand_id
+            ), headers={"Content-Type": "application/json"}
+        )
+
+        self.assertEqual(200, hand_status_response.status_code, msg="Failed to get game status! Response code is {}".format(hand_status_response.status_code))
+        self.assertEqual(hand_id, hand_status_response.json['hand_id'],
+                          msg="Invalid field 'hand_id' in hand status after finalizing first turn!")
+        self.assertIsNotNone(hand_status_response.json['next_acting_player'],
+                          msg="Invalid field 'next_acting_player' in hand status after finalizing first turn!")
+        self.assertIsNotNone(hand_status_response.json['starting_player'],
+                          msg="Invalid field 'starting_player' in hand status after finalizing first turn!")
+        self.assertEqual(1, hand_status_response.json['hand_serial_no'],
+                          msg="Invalid field 'hand_serial_no' in hand status after finalizing first turn!")
+        self.assertEqual(game_id, hand_status_response.json['game_id'],
+                          msg="Invalid field 'game_id' in hand status after finalizing first turn!")
+        self.assertEqual(create_room_response.json['room_id'], hand_status_response.json['room_id'],
+                          msg="Invalid field 'room_id' in hand status after finalizing first turn!")
+        self.assertEqual('d', hand_status_response.json['trump'],
+                          msg="Invalid field 'trump' in hand status after finalizing first turn!")
+        self.assertEqual(0, hand_status_response.json['hand_is_closed'],
+                          msg="Invalid field 'hand_is_closed' in hand status after finalizing first turn!")
+        self.assertEqual(len(successful_start_response.json['players']), len(hand_status_response.json['players']),
+                          msg="Invalid field 'players' in hand status after finalizing first turn!")
+        self.assertEqual(1, hand_status_response.json['current_turn_serial_no'],
+                          msg="Invalid field 'current_turn_serial_no' in hand status after finalizing first turn!")
 
 
 if __name__ == '__main__':
