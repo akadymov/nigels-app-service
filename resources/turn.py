@@ -98,7 +98,7 @@ def put_card(game_id, hand_id, card_id):
 
     player_current_hand = h.get_user_current_hand(requesting_user)
     if card_id not in player_current_hand:
-        abort(403, 'Player {username} does not have card {card_id} on his hand!'.format(username=requesting_user.username, card_id=card_id))
+        abort(403, 'Player {username} does not have card {card_id} on his hand!'.format(username=requesting_user.username, card_id=card_id[:1], card_suit=card_id[1:]))
 
     last_turn = h.get_last_turn()
     serial_no = 1
@@ -120,10 +120,10 @@ def put_card(game_id, hand_id, card_id):
             if h.user_has_suit(suit=turn_suit, user=requesting_user) and card_suit != turn_suit and card_suit != h.trump:
                 abort(403, 'You should put card of following suits: {turn_suit} or {trump}'.format(turn_suit=turn_suit, trump=h.trump))
             trump_hierarchy = ['2', '3', '4', '5', '6', '7', '8', 't', 'q', 'k', 'a', '9', 'j']
-            if card_suit == h.trump and turn_suit != h.trump and t.highest_card()[-1:]==h.trump.casefold() and trump_hierarchy.index(card_score) < trump_hierarchy.index(t.highest_card()[:1]):
+            if card_suit == h.trump and turn_suit != h.trump and t.highest_card()['suit']==h.trump.casefold() and trump_hierarchy.index(card_score) < trump_hierarchy.index(t.highest_card()['score']):
                 abort(403, 'You cannot utilize lower trumps!')
 
-    tc = TurnCard(player_id=requesting_user.id, card_id=card_id, turn_id=t.id, hand_id=hand_id)
+    tc = TurnCard(player_id=requesting_user.id, card_id=card_id[:1], card_suit=card_id[1:], turn_id=t.id, hand_id=hand_id)
     db.session.add(tc)
 
     db.session.commit()
@@ -134,7 +134,7 @@ def put_card(game_id, hand_id, card_id):
 
     took_player = None
     if len(t.stroke_cards()) == players_count:
-        took_player = User.query.filter_by(id=DealtCards.query.filter_by(hand_id=hand_id, card_id=t.highest_card().casefold()).first().player_id).first()
+        took_player = User.query.filter_by(id=DealtCards.query.filter_by(hand_id=hand_id, card_id=t.highest_card()['id'].casefold(), card_suit=t.highest_card()['suit'].casefold()).first().player_id).first()
         t.took_user_id = took_player.id
 
     game_scores = None
@@ -151,13 +151,13 @@ def put_card(game_id, hand_id, card_id):
 
     cards_on_table = []
     for card in t.stroke_cards():
-        cards_on_table.append(card.card_id)
+        cards_on_table.append(str(card.card_id) + card.card_suit)
 
     return jsonify({
         'turn_no': t.serial_no,
         'cards_on_table': cards_on_table,
         'starting_suit': t.get_starting_suit(),
-        'highest_card': t.highest_card(),
+        'highest_card': str(t.highest_card()['id']) + t.highest_card()['suit'],
         'took_player': took_player.username if took_player else None,
         'hand_is_finished': True if h.is_closed == 1 else False,
         'game_is finished': True if g.finished else False,
