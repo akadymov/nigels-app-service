@@ -241,10 +241,12 @@ class Hand(db.Model):
             return None
 
     def get_user_initial_hand(self, user):
-        initial_cards = DealtCards.query.filter_by(hand_id=self.id, player_id=user.id).all()
+        possible_suits_ordered = ['d', 's', 'h', 'c']
         initial_hand = []
-        for card in initial_cards:
-            initial_hand.append(card.card_id)
+        for suit in possible_suits_ordered:
+            player_cards_suited = DealtCards.query.filter_by(hand_id=self.id, player_id=user.id, card_suit=suit).all()
+            for card in player_cards_suited:
+                initial_hand.append(str(card.card_id) + card.card_suit)
         return initial_hand
 
     def get_user_current_hand(self, user):
@@ -252,7 +254,7 @@ class Hand(db.Model):
         burned_cards = TurnCard.query.filter_by(hand_id=self.id, player_id=user.id)
         burned_cards_list = []
         for card in burned_cards:
-            burned_cards_list.append(card.card_id)
+            burned_cards_list.append(str(card.card_id) + card.card_suit)
         current_hand = []
         for card in initial_cards:
             if card not in burned_cards_list:
@@ -286,7 +288,7 @@ class Hand(db.Model):
         turned_cards_obj = TurnCard.query.filter_by(hand_id=self.id).all()
         turned_cards = []
         for tc in turned_cards_obj:
-            turned_cards.append(tc.card_id)
+            turned_cards.append(str(tc.card_id) + tc.card_suit)
         return turned_cards
 
     def user_has_suit(self, user, suit):
@@ -384,7 +386,8 @@ class DealtCards(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     hand_id = db.Column(db.Integer, db.ForeignKey('hand.id'), nullable=False)
     player_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
-    card_id = db.Column(db.String(2), nullable=False)
+    card_id = db.Column(db.String(1), nullable=False)
+    card_suit = db.Column(db.String(1), nullable=False)
 
     def __repr__(self):
         return '<Card {} dealt to player {} in hand {}>'.format(self.card_id, User.query.filter_by(id=self.player_id).first().username, self.hand_id)
@@ -426,7 +429,7 @@ class Turn(db.Model):
     def get_starting_suit(self):
         first_card = TurnCard.query.filter_by(turn_id=self.id).order_by(TurnCard.id).first()
         if first_card:
-            return first_card.card_id[-1:]
+            return first_card.card_suit
         return None
 
     def if_put_card(self, user):
@@ -438,23 +441,28 @@ class Turn(db.Model):
     def highest_card(self):
         turn_cards = TurnCard.query.filter_by(turn_id=self.id).order_by(TurnCard.id).all()
         trump = Hand.query.filter_by(id=self.hand_id).first().trump.casefold()
-        highest_card = None
+        highest_card = {}
         turn_suit = self.get_starting_suit().casefold()
         cards_hierarchy = ['2', '3', '4', '5', '6', '7', '8', '9', 't', 'j', 'q', 'k', 'a']
         trump_hierarchy = ['2', '3', '4', '5', '6', '7', '8', 't', 'q', 'k', 'a', '9', 'j']
         for card in turn_cards:
             if not highest_card:
-                highest_card = card.card_id.casefold()
+                highest_card['id'] = card.card_id.casefold()
+                highest_card['suit'] = card.card_suit.casefold()
             else:
-                card_suit = str(card.card_id[-1:]).casefold()
-                card_score = str(card.card_id[:1]).casefold()
+                card_suit = str(card.card_suit).casefold()
+                card_score = str(card.card_id).casefold()
                 if card_suit == trump:
-                    if highest_card[-1:] != trump or trump_hierarchy.index(str(highest_card[:1])) < trump_hierarchy.index(card_score):
-                        highest_card = card.card_id.casefold()
-                elif cards_hierarchy.index(str(highest_card[:1])) < cards_hierarchy.index(card_score):
-                    highest_card = card.card_id.casefold()
+                    if highest_card['suit'] != trump or trump_hierarchy.index(str(highest_card['id'])) < trump_hierarchy.index(card_score):
+                        highest_card['id'] = card_score
+                        highest_card['suit'] = card_suit
+                elif cards_hierarchy.index(str(highest_card['id'])) \
+                        < cards_hierarchy.index(card_score):
+                    highest_card['id'] = card_score
+                    highest_card['suit'] = card_suit
                 elif turn_cards.index(card) == 0:
-                    highest_card = card.card_id.casefold()
+                    highest_card['id'] = card_score
+                    highest_card['suit'] = card_suit
         return highest_card
 
     def __repr__(self):
@@ -465,7 +473,8 @@ class TurnCard(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     hand_id = db.Column(db.Integer, db.ForeignKey('hand.id'), nullable=False)
     turn_id = db.Column(db.Integer, db.ForeignKey('turn.id'), nullable=False)
-    card_id = db.Column(db.String(2), nullable=False)
+    card_id = db.Column(db.String(1), nullable=False)
+    card_suit = db.Column(db.String(1), nullable=False)
     player_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
     def __repr__(self):

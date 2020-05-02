@@ -99,7 +99,7 @@ def deal_cards(game_id):
         i = i + 1
         if i <= cards_per_player * game.players.count():
             card_player = h.get_player_by_pos(deck.index(card) % game.players.count() + 1)
-            dc = DealtCards(hand_id=h.id, card_id=card, player_id=card_player.id)
+            dc = DealtCards(hand_id=h.id, card_id=card[:1], card_suit=card[1:], player_id=card_player.id)
             db.session.add(dc)
 
     """players_cards = {}
