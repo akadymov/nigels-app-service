@@ -241,10 +241,12 @@ class Hand(db.Model):
             return None
 
     def get_user_initial_hand(self, user):
-        initial_cards = DealtCards.query.filter_by(hand_id=self.id, player_id=user.id).all()
+        possible_suits_ordered = ['d', 's', 'h', 'c']
         initial_hand = []
-        for card in initial_cards:
-            initial_hand.append(str(card.card_id) + card.card_suit)
+        for suit in possible_suits_ordered:
+            player_cards_suited = DealtCards.query.filter_by(hand_id=self.id, player_id=user.id, card_suit=suit).all()
+            for card in player_cards_suited:
+                initial_hand.append(str(card.card_id) + card.card_suit)
         return initial_hand
 
     def get_user_current_hand(self, user):
