@@ -8,9 +8,8 @@ load_dotenv(os.path.join(basedir, '.env'))
 class Config(object):
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'you-will-never-guess'
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or 'sqlite:///' + os.path.join(basedir, 'app.db')
-    # Use following pattern for mysql: mysql://username:password@server/db
+    # Use following pattern for mysql or postgresql: db_type://db_username:password@host:port/db_name
     # Use following pattern for sqlite: sqlite:///path/to/db/folder/test.db
-    # Use following pattern for postgresql: postgresql://DB_USER:PASSWORD@HOST/DATABASE
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     OAUTH_CREDENTIALS = {
         'facebook': {
