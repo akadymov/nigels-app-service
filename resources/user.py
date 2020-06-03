@@ -15,26 +15,59 @@ user = Blueprint('user', __name__)
 def create_user():
     username = request.json.get('username')
     email = request.json.get('email')
-    preferred_lang = request.json.get('preferred_lang') or app.config['DEFAULT_LANG']
+    preferred_lang = request.json.get('preferred-lang') or app.config['DEFAULT_LANG']
     password = request.json.get('password')
+    repeat_password = request.json.get('repeat-password')
     last_seen = datetime.utcnow()
     registered = datetime.utcnow()
-    if username is None or \
-            password is None or \
-            email is None:
-        abort(400, 'Missing mandatory arguments (username, password or email)!')
+    missing_parameters = []
+    if username is None:
+        missing_parameters.append('username')
+    if password is None:
+        missing_parameters.append('password')
+    if email is None:
+        missing_parameters.append('email')
+    if missing_parameters:
+        return jsonify({
+            'error': 'Missing mandatory arguments (username, password or email)!',
+            'missing_fields': missing_parameters
+        }), 400
+    if password != repeat_password:
+        return jsonify({
+            'error': 'Password confirmation is invalid!',
+            'incorrect_fields': ['repeat-password']
+        }), 400
     if not re.match(app.config['USERNAME_REGEXP'], username):
-        abort(400, 'Bad username!')
+        return jsonify({
+            'error': 'Bad username!',
+            'incorrect_fields': ['username']
+        }), 400
     if not re.match(app.config['EMAIL_REGEXP'], email):
-        abort(400, 'Bad email!')
+        return jsonify({
+            'error': 'Bad email!',
+            'incorrect_fields': ['email']
+        }), 400
     if not re.match(app.config['PASSWORD_REGEXP'], password):
-        abort(400, 'Password does not satisfy security requirements!')
+        return jsonify({
+            'error': 'Password does not satisfy security requirements!',
+            'incorrect_fields': ['password']
+        }), 400
     if User.query.filter_by(username=username.casefold()).count() > 0:
-        abort(400, 'User with username {username} already exists!'.format(username=username))
+        return jsonify({
+            'error': 'User with username {username} already exists!'.format(username=username),
+            'incorrect_fields': ['username']
+        }), 400
     if User.query.filter_by(email=email).first() is not None:
-        abort(400, 'User with email {email} already exists!'.format(email=email))
+        return jsonify({
+            'error': 'User with email {email} already exists!'.format(email=email),
+            'incorrect_fields': ['email']
+        }), 400
+        abort(400, )
     if preferred_lang not in ['ru', 'en']:
-        abort(400, 'Language {lang} is not supported!'.format(lang=preferred_lang))
+        return jsonify({
+            'error': 'Language {lang} is not supported!'.format(lang=preferred_lang),
+            'incorrect_fields': ['preferred-lang']
+        }), 400
     user = User(
         username=username.casefold(),
         email=email.casefold(),
@@ -50,7 +83,7 @@ def create_user():
         jsonify({
             'username': user.username.casefold(),
             'email': user.email,
-            'preferred_lang': user.preferred_language,
+            'preferred-lang': user.preferred_language,
             'registered': user.registered,
             'last_seen': user.last_seen,
             'about_me': user.about_me
@@ -68,7 +101,7 @@ def get_user(username):
     return jsonify({
         'username': user.username,
         'email': user.email,
-        'preferred_lang': user.preferred_language,
+        'preferred-lang': user.preferred_language,
         'registered': user.registered,
         'last_seen': user.last_seen,
         'about_me': user.about_me
@@ -105,7 +138,7 @@ def edit_user(username):
 
     email = request.json.get('email') or modified_user.email
     about_me = request.json.get('about_me') or modified_user.about_me
-    preferred_lang = request.json.get('preferred_lang') or modified_user.preferred_language
+    preferred_lang = request.json.get('preferred-lang') or modified_user.preferred_language
     if not re.match(app.config['EMAIL_REGEXP'], email):
         abort(400, 'Bad email!')
     conflict_user = User.query.filter_by(email=email).first()
@@ -123,7 +156,7 @@ def edit_user(username):
     return jsonify({
         'username': modified_user.username,
         'email': modified_user.email,
-        'preferred_lang': modified_user.preferred_language,
+        'preferred-lang': modified_user.preferred_language,
         'registered': modified_user.registered,
         'last_seen': modified_user.last_seen,
         'about_me': modified_user.about_me
