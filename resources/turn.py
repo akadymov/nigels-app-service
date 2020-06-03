@@ -120,7 +120,7 @@ def put_card(game_id, hand_id, card_id):
             if h.user_has_suit(suit=turn_suit, user=requesting_user) and card_suit != turn_suit and card_suit != h.trump:
                 abort(403, 'You should put card of following suits: {turn_suit} or {trump}'.format(turn_suit=turn_suit, trump=h.trump))
             trump_hierarchy = ['2', '3', '4', '5', '6', '7', '8', 't', 'q', 'k', 'a', '9', 'j']
-            if card_suit == h.trump and turn_suit != h.trump and t.highest_card()['suit']==h.trump.casefold() and trump_hierarchy.index(card_score) < trump_hierarchy.index(t.highest_card()['score']):
+            if card_suit == h.trump and turn_suit != h.trump and t.highest_card()['suit']==h.trump.casefold() and trump_hierarchy.index(card_score) < trump_hierarchy.index(t.highest_card()['id']):
                 abort(403, 'You cannot utilize lower trumps!')
 
     tc = TurnCard(player_id=requesting_user.id, card_id=card_id[:1], card_suit=card_id[1:], turn_id=t.id, hand_id=hand_id)

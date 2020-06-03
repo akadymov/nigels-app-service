@@ -15,7 +15,8 @@ class UserMethodsCase(BaseCase):
         payload1 = json.dumps({
             "email": email,
             "username": username,
-            "password": password
+            "password": password,
+            "repeat-password": password
         })
         payload2 = json.dumps({
             "username": username,
@@ -37,7 +38,7 @@ class UserMethodsCase(BaseCase):
         self.assertEqual(email, response.json['email'], msg='Invalid email in response body!')
         self.assertIsNone(response.json['about_me'], msg='About me is not None in response body!')
         self.assertEqual(str, type(response.json['last_seen']), msg='No last seen timestamp in response body!')
-        self.assertEqual(app.config['DEFAULT_LANG'], response.json['preferred_lang'],
+        self.assertEqual(app.config['DEFAULT_LANG'], response.json['preferred-lang'],
                          msg='Preferred lang is not set to default for signed up user!')
         self.assertEqual(str, type(response.json['registered']), msg='No registered timestamp in response body!')
         self.assertEqual('matroskin', response.json['username'], msg='Invalid username in response body!')
@@ -49,7 +50,7 @@ class UserMethodsCase(BaseCase):
         self.assertIsNone(get_user_response.json['about_me'], msg='About me is not None in get user response body!')
         self.assertEqual(str, type(get_user_response.json['last_seen']),
                          msg='No last seen timestamp in get user response body!')
-        self.assertEqual(app.config['DEFAULT_LANG'], get_user_response.json['preferred_lang'],
+        self.assertEqual(app.config['DEFAULT_LANG'], get_user_response.json['preferred-lang'],
                          msg='Preferred lang is not set to default for signed up user!')
         self.assertEqual(str, type(get_user_response.json['registered']),
                          msg='No registered timestamp in response body!')
@@ -69,7 +70,8 @@ class UserMethodsCase(BaseCase):
         payload = json.dumps({
             "email": email,
             "username": username,
-            "password": password
+            "password": password,
+            "repeat-password": password
         })
 
         # When
@@ -96,12 +98,14 @@ class UserMethodsCase(BaseCase):
         payload1 = json.dumps({
             "email": email,
             "username": username1,
-            "password": password
+            "password": password,
+            "repeat-password": password
         })
         payload2 = json.dumps({
             "email": email,
             "username": username2,
-            "password": password
+            "password": password,
+            "repeat-password": password
         })
 
         # When
@@ -132,12 +136,14 @@ class UserMethodsCase(BaseCase):
         payload1 = json.dumps({
             "email": email1,
             "username": username,
-            "password": password
+            "password": password,
+            "repeat-password": password
         })
         payload2 = json.dumps({
             "email": email2,
             "username": username,
-            "password": password
+            "password": password,
+            "repeat-password": password
         })
 
         # When
@@ -167,7 +173,8 @@ class UserMethodsCase(BaseCase):
         payload = json.dumps({
             "email": email,
             "username": username,
-            "password": password
+            "password": password,
+            "repeat-password": password
         })
 
         # When
@@ -195,7 +202,8 @@ class UserMethodsCase(BaseCase):
         payload1 = json.dumps({
             "email": email,
             "username": username,
-            "password": password
+            "password": password,
+            "repeat-password": password
         })
         payload2 = json.dumps({
             "username": username,
@@ -226,7 +234,8 @@ class UserMethodsCase(BaseCase):
         payload1 = json.dumps({
             "email": email,
             "username": username,
-            "password": password
+            "password": password,
+            "repeat-password": password
         })
         payload2 = json.dumps({
             "username": username,
@@ -235,7 +244,8 @@ class UserMethodsCase(BaseCase):
         payload3 = json.dumps({
             "email": email2,
             "username": username2,
-            "password": password
+            "password": password,
+            "repeat-password": password
         })
 
         # When
@@ -261,7 +271,7 @@ class UserMethodsCase(BaseCase):
             "email": email,
             "about_me": about_me,
             "token": token_response.json['token'],
-            "preferred_lang": "ru"
+            "preferred-lang": "ru"
         })
 
         update_profile_response = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
@@ -271,7 +281,7 @@ class UserMethodsCase(BaseCase):
             "email": email2,
             "about_me": about_me,
             "token": token_response.json['token'],
-            "preferred_lang": "ru"
+            "preferred-lang": "ru"
         })
 
         update_profile_response2 = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username2),
@@ -281,7 +291,7 @@ class UserMethodsCase(BaseCase):
             "email": username,
             "about_me": about_me,
             "token": token_response.json['token'],
-            "preferred_lang": "ru"
+            "preferred-lang": "ru"
         })
 
         update_profile_response3 = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
@@ -291,7 +301,7 @@ class UserMethodsCase(BaseCase):
             "email": email2,
             "about_me": about_me,
             "token": token_response.json['token'],
-            "preferred_lang": "ru"
+            "preferred-lang": "ru"
         })
 
         update_profile_response4 = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
@@ -301,7 +311,7 @@ class UserMethodsCase(BaseCase):
             "email": email2,
             "about_me": about_me,
             "token": token_response.json['token'],
-            "preferred_lang": "de"
+            "preferred-lang": "de"
         })
 
         update_profile_response5 = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
@@ -320,7 +330,7 @@ class UserMethodsCase(BaseCase):
         self.assertEqual(email, update_profile_response.json['email'], msg='Invalid email in get profile response body!')
         self.assertEqual(about_me, update_profile_response.json['about_me'], msg='About me is incorrect in get profile response body!')
         self.assertEqual(str, type(update_profile_response.json['last_seen']), msg='No last seen timestamp in get profile response body!')
-        self.assertEqual("ru", update_profile_response.json['preferred_lang'],
+        self.assertEqual("ru", update_profile_response.json['preferred-lang'],
                          msg='Preferred lang is not changed!')
         self.assertEqual(str, type(update_profile_response.json['registered']), msg='No registered timestamp in get profile response body!')
         self.assertEqual('matroskin', update_profile_response.json['username'], msg='Invalid username in get profile response body!')
@@ -334,7 +344,8 @@ class UserMethodsCase(BaseCase):
         payload1 = json.dumps({
             "email": email,
             "username": username,
-            "password": password
+            "password": password,
+            "repeat-password": password
         })
         payload2 = json.dumps({
             "username": username,
@@ -369,7 +380,7 @@ class UserMethodsCase(BaseCase):
         self.assertEqual(email2, update_profile_response.json['email'], msg='Invalid email in get profile response body!')
         self.assertIsNone(update_profile_response.json['about_me'], msg='About me is not None in response body!')
         self.assertEqual(str, type(update_profile_response.json['last_seen']), msg='No last seen timestamp in get profile response body!')
-        self.assertEqual(app.config['DEFAULT_LANG'], update_profile_response.json['preferred_lang'],
+        self.assertEqual(app.config['DEFAULT_LANG'], update_profile_response.json['preferred-lang'],
                          msg='Preferred lang is not set to default for signed up user!')
         self.assertEqual(str, type(update_profile_response.json['registered']), msg='No registered timestamp in get profile response body!')
         self.assertEqual('matroskin', update_profile_response.json['username'], msg='Invalid username in get profile response body!')
@@ -382,7 +393,8 @@ class UserMethodsCase(BaseCase):
         payload1 = json.dumps({
             "email": email,
             "username": username,
-            "password": password
+            "password": password,
+            "repeat-password": password
         })
         payload2 = json.dumps({
             "username": username,
