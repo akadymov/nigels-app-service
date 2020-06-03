@@ -14,7 +14,8 @@ class HandTurnMethodsCase(BaseCase):
         create_host_payload = json.dumps({
             "email": email,
             "username": username,
-            "password": password
+            "password": password,
+            "repeat-password": password
         })
         host_auth_payload = json.dumps({
             "username": username,
@@ -55,7 +56,8 @@ class HandTurnMethodsCase(BaseCase):
         create_user2_payload = json.dumps({
             "email": email3,
             "username": username2,
-            "password": password
+            "password": password,
+            "repeat-password": password
         })
         auth_user2_payload = json.dumps({
             "username": username2,
@@ -64,7 +66,8 @@ class HandTurnMethodsCase(BaseCase):
         create_user3_payload = json.dumps({
             "email": email4,
             "username": username3,
-            "password": password
+            "password": password,
+            "repeat-password": password
         })
         auth_user3_payload = json.dumps({
             "username": username3,
