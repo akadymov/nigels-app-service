@@ -11,6 +11,15 @@ from app.email import send_password_reset_email, send_registration_notification
 user = Blueprint('user', __name__)
 
 
+@user.route('{base_path}/user/regexps'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+def get_user_regexps():
+    return jsonify({
+        'email_regexp': app.config['EMAIL_REGEXP'],
+        'password_regexp': app.config['PASSWORD_REGEXP'],
+        'allowed_lang_codes': app.config['ALLOWED_LANGS']
+    }), 200
+
+
 @user.route('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
 def create_user():
     username = request.json.get('username')
@@ -62,8 +71,7 @@ def create_user():
             'error': 'User with email {email} already exists!'.format(email=email),
             'incorrect_fields': ['email']
         }), 400
-        abort(400, )
-    if preferred_lang not in ['ru', 'en']:
+    if preferred_lang not in app.config['ALLOWED_LANGS']:
         return jsonify({
             'error': 'Language {lang} is not supported!'.format(lang=preferred_lang),
             'incorrect_fields': ['preferred-lang']
