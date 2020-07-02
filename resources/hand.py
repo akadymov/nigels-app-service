@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from flask import url_for, request, jsonify, abort, Blueprint
+from flask_cors import cross_origin
 from app import app, db
 from app.models import User, Room, Game, Player, Hand, DealtCards, HandScore
 import random
@@ -11,6 +12,7 @@ hand = Blueprint('hand', __name__)
 
 
 @hand.route('{base_path}/game/<game_id>/hand/deal'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def deal_cards(game_id):
 
     token = request.json.get('token')
@@ -123,6 +125,7 @@ def deal_cards(game_id):
 
 
 @hand.route('{base_path}/game/<game_id>/hand/<hand_id>/cards'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def get_hand_cards(game_id, hand_id):
 
     token = request.json.get('token')
@@ -154,6 +157,7 @@ def get_hand_cards(game_id, hand_id):
 
 
 @hand.route('{base_path}/game/<game_id>/hand/<hand_id>'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+@cross_origin()
 def status(game_id, hand_id):
 
     game = Game.query.filter_by(id=game_id).first()

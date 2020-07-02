@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from flask import url_for, request, jsonify, abort, Blueprint, Response
+from flask_cors import cross_origin
 from app import app, db
 from app.models import User
 from datetime import datetime
@@ -12,6 +13,7 @@ user = Blueprint('user', __name__)
 
 
 @user.route('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def create_user():
     username = request.json.get('username')
     email = request.json.get('email')
@@ -93,6 +95,7 @@ def create_user():
 
 
 @user.route('{base_path}/user/<username>'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+@cross_origin()
 def get_user(username):
     username = username.casefold()
     user = User.query.filter_by(username=username).first()
@@ -109,6 +112,7 @@ def get_user(username):
 
 
 @user.route('{base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def post_token():
     username = request.json.get('username').casefold()
     password = request.json.get('password')
@@ -124,6 +128,7 @@ def post_token():
 
 
 @user.route('{base_path}/user/<username>'.format(base_path=app.config['API_BASE_PATH']), methods=['PUT'])
+@cross_origin()
 def edit_user(username):
 
     token = request.json.get('token')
@@ -164,6 +169,7 @@ def edit_user(username):
 
 
 @user.route('{base_path}/user/password/recover'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def send_password_recovery():
 
     email = request.json.get('email')
@@ -178,6 +184,7 @@ def send_password_recovery():
 
 
 @user.route('{base_path}/user/password/reset'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def reset_password():
 
     new_password = request.json.get('new_password')
@@ -197,6 +204,7 @@ def reset_password():
 
 
 @user.route('/user/reset_password/<token>', methods=['GET'])
+@cross_origin()
 def reset_password_form(token):
 
     user = User.verify_reset_password_token(token)

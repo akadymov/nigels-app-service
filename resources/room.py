@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from flask import url_for, request, jsonify, abort, Blueprint
+from flask_cors import cross_origin
 from app import app, db
 from app.models import User, Room
 from datetime import datetime
@@ -10,6 +11,7 @@ room = Blueprint('room', __name__)
 
 
 @room.route('{base_path}/room/all'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+@cross_origin()
 def get_list():
     rooms = Room.query.filter_by(closed=None).all()
     if str(request.args.get('closed')).lower() == 'y':
@@ -70,6 +72,7 @@ def create():
 
 
 @room.route('{base_path}/room/<room_id>/close'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def close(room_id):
 
     token = request.json.get('token')
@@ -104,6 +107,7 @@ def close(room_id):
 
 
 @room.route('{base_path}/room/<room_id>/connect'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def connect(room_id):
 
     token = request.json.get('token')
@@ -131,6 +135,7 @@ def connect(room_id):
 
 
 @room.route('{base_path}/room/<room_id>/disconnect'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def disconnect(room_id):
 
     token = request.json.get('token')
@@ -153,6 +158,7 @@ def disconnect(room_id):
 
 
 @room.route('{base_path}/room/<room_id>'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+@cross_origin()
 def status(room_id):
     room = Room.query.filter_by(id=room_id).first()
     if not room:

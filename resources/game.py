@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from flask import url_for, request, jsonify, abort, Blueprint
+from flask_cors import cross_origin
 from app import app, db
 from app.models import User, Room, Game, Player, Hand
 from datetime import datetime
@@ -11,6 +12,7 @@ game = Blueprint('game', __name__)
 
 
 @game.route('{base_path}/game/<game_id>/score'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+@cross_origin()
 def game_score(game_id):
 
     g = Game.query.filter_by(id=game_id).first()
@@ -26,6 +28,7 @@ def game_score(game_id):
 
 
 @game.route('{base_path}/game/start'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def start():
 
     token = request.json.get('token')
@@ -74,6 +77,7 @@ def start():
 
 
 @game.route('{base_path}/game/finish'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def finish():
 
     token = request.json.get('token')
@@ -115,6 +119,7 @@ def finish():
 
 
 @game.route('{base_path}/game/<game_id>/positions'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def positions(game_id):
 
     token = request.json.get('token')
@@ -155,6 +160,7 @@ def positions(game_id):
 
 
 @game.route('{base_path}/game/<game_id>'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+@cross_origin()
 def status(game_id):
     game = Game.query.filter_by(id=game_id).first()
     if not game:

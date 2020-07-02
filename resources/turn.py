@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from flask import url_for, request, jsonify, abort, Blueprint
+from flask_cors import cross_origin
 from app import app, db
 from app.models import User, Game, Player, Hand, HandScore, Turn, DealtCards, TurnCard
 from datetime import datetime
@@ -10,6 +11,7 @@ turn = Blueprint('turn', __name__)
 
 
 @turn.route('{base_path}/game/<game_id>/hand/<hand_id>/turn/bet'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def bet(game_id, hand_id):
 
     token = request.json.get('token')
@@ -65,6 +67,7 @@ def bet(game_id, hand_id):
 
 
 @turn.route('{base_path}/game/<game_id>/hand/<hand_id>/turn/card/put/<card_id>'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def put_card(game_id, hand_id, card_id):
 
     token = request.json.get('token')
