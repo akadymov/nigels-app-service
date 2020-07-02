@@ -20,8 +20,8 @@ def game_score(game_id):
     game_scores = g.get_scores()
 
     return jsonify({
-        'game_id': game_id,
-        'game_scores': game_scores
+        'gameId': game_id,
+        'gameScores': game_scores
     }), 200
 
 
@@ -64,7 +64,7 @@ def start():
     db.session.commit()
 
     return jsonify({
-        'game_id': g.id,
+        'gameId': g.id,
         'room': g.room.room_name,
         'host': g.room.host.username,
         'status': 'active' if g.finished is None else 'finished',
@@ -104,7 +104,7 @@ def finish():
         players_list.append(player.username)
 
     return jsonify({
-        'game_id': g.id,
+        'gameId': g.id,
         'room': g.room.room_name,
         'host': g.room.host.username,
         'status': 'active' if g.finished is None else 'finished',
@@ -149,7 +149,7 @@ def positions(game_id):
         })
 
     return jsonify({
-        'game_id': game_id,
+        'gameId': game_id,
         'players': players_list
     }), 200
 
@@ -174,12 +174,12 @@ def status(game_id):
     played_hands_count = Hand.query.filter_by(game_id=game_id, is_closed=1).count()
 
     return jsonify({
-            'game_id': game.id,
-            'room_id': game.room_id,
-            'current_hand_id': current_hand.id if current_hand else None,
-            'current_hand_serial_no': current_hand.serial_no if current_hand else None,
-            'current_hand_location': url_for('hand.status', hand_id=current_hand.id, game_id=game_id) if current_hand else None,
-            'played_hands_count': played_hands_count,
+            'gameId': game.id,
+            'roomId': game.room_id,
+            'currentHandId': current_hand.id if current_hand else None,
+            'currentHandSerialNo': current_hand.serial_no if current_hand else None,
+            'currentHandLocation': url_for('hand.status', hand_id=current_hand.id, game_id=game_id) if current_hand else None,
+            'playedHandsCount': played_hands_count,
             'started': game.started,
             'status': 'open' if game.finished is None else 'finished',
             'finished': game.finished,

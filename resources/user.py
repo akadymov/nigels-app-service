@@ -15,9 +15,9 @@ user = Blueprint('user', __name__)
 def create_user():
     username = request.json.get('username')
     email = request.json.get('email')
-    preferred_lang = request.json.get('preferred-lang') or app.config['DEFAULT_LANG']
+    preferred_lang = request.json.get('preferredLang') or app.config['DEFAULT_LANG']
     password = request.json.get('password')
-    repeat_password = request.json.get('repeat-password')
+    repeat_password = request.json.get('repeatPassword')
     last_seen = datetime.utcnow()
     registered = datetime.utcnow()
     missing_parameters = []
@@ -35,7 +35,7 @@ def create_user():
     if password != repeat_password:
         return jsonify({
             'error': 'Password confirmation is invalid!',
-            'incorrect_fields': ['repeat-password']
+            'incorrect_fields': ['repeatPassword']
         }), 400, {'Access-Control-Allow-Origin': 'localhost:3000', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods':'*'}
     if not re.match(app.config['USERNAME_REGEXP'], username):
         return jsonify({
@@ -65,7 +65,7 @@ def create_user():
     if preferred_lang not in ['ru', 'en']:
         return jsonify({
             'error': 'Language {lang} is not supported!'.format(lang=preferred_lang),
-            'incorrect_fields': ['preferred-lang']
+            'incorrect_fields': ['preferredLang']
         }), 400, {'Access-Control-Allow-Origin': 'localhost:3000', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods':'*'}
     user = User(
         username=username.casefold(),
@@ -82,10 +82,10 @@ def create_user():
         jsonify({
             'username': user.username.casefold(),
             'email': user.email,
-            'preferred-lang': user.preferred_language,
+            'preferredLang': user.preferred_language,
             'registered': user.registered,
-            'last_seen': user.last_seen,
-            'about_me': user.about_me
+            'lastSeen': user.last_seen,
+            'aboutMe': user.about_me
         }), \
         201, \
         {'Location': url_for('user.get_user', username=username, _external=True),
@@ -101,10 +101,10 @@ def get_user(username):
     return jsonify({
         'username': user.username,
         'email': user.email,
-        'preferred-lang': user.preferred_language,
+        'preferredLang': user.preferred_language,
         'registered': user.registered,
-        'last_seen': user.last_seen,
-        'about_me': user.about_me
+        'lastSeen': user.last_seen,
+        'aboutMe': user.about_me
     }), 200
 
 
@@ -119,7 +119,7 @@ def post_token():
         token = user.generate_auth_token()
         return jsonify({
             'token': token.decode('ascii'),
-            'expires_in': app.config['TOKEN_LIFETIME']
+            'expiresIn': app.config['TOKEN_LIFETIME']
         }), 201
 
 
@@ -137,8 +137,8 @@ def edit_user(username):
         abort(401, 'You can update only your own profile ({username})!'.format(username=str(requesting_user.username)))
 
     email = request.json.get('email') or modified_user.email
-    about_me = request.json.get('about_me') or modified_user.about_me
-    preferred_lang = request.json.get('preferred-lang') or modified_user.preferred_language
+    about_me = request.json.get('aboutMe') or modified_user.about_me
+    preferred_lang = request.json.get('preferredLang') or modified_user.preferred_language
     if not re.match(app.config['EMAIL_REGEXP'], email):
         abort(400, 'Bad email!')
     conflict_user = User.query.filter_by(email=email).first()
@@ -156,10 +156,10 @@ def edit_user(username):
     return jsonify({
         'username': modified_user.username,
         'email': modified_user.email,
-        'preferred-lang': modified_user.preferred_language,
+        'preferredLang': modified_user.preferred_language,
         'registered': modified_user.registered,
-        'last_seen': modified_user.last_seen,
-        'about_me': modified_user.about_me
+        'lastSeen': modified_user.last_seen,
+        'aboutMe': modified_user.about_me
     }), 200
 
 

@@ -17,13 +17,13 @@ def get_list():
     rooms_json = []
     for room in rooms:
         rooms_json.append({
-            'room_id': room.id,
-            'room_name': room.room_name,
+            'roomId': room.id,
+            'roomName': room.room_name,
             'host': room.host.username,
             'status': 'open' if room.closed is None else 'closed',
             'created': room.created,
             'closed': room.closed,
-            'connected_users': room.connected_users.count(),
+            'connectedUsers': room.connected_users.count(),
             'connect': url_for('room.connect', room_id=room.id)
         })
 
@@ -51,19 +51,19 @@ def create():
     if connected_room.count() > 0:
         abort(403, 'User {username} already is connected to other room! Disconnect before creating new one.'.format(username=requesting_user.username))
 
-    room_name = request.json.get('room_name')
+    room_name = request.json.get('roomName')
     new_room = Room(room_name=room_name, host=requesting_user, created=datetime.utcnow())
     db.session.add(new_room)
     new_room.connect(requesting_user)
     db.session.commit()
 
     return jsonify({
-        'room_id': new_room.id,
-        'room_name': new_room.room_name,
+        'roomId': new_room.id,
+        'roomName': new_room.room_name,
         'host': new_room.host.username,
         'created': new_room.created,
         'closed': new_room.closed,
-        'connected_users': new_room.connected_users.count(),
+        'connectedUsers': new_room.connected_users.count(),
         'status': 'open' if new_room.closed is None else 'closed',
         'connect': url_for('room.connect', room_id=new_room.id)
     }), 201
@@ -94,8 +94,8 @@ def close(room_id):
     db.session.commit()
 
     return jsonify({
-        'room_id': target_room.id,
-        'room_name': target_room.room_name,
+        'roomId': target_room.id,
+        'roomName': target_room.room_name,
         'host': target_room.host.username,
         'created': target_room.created,
         'status': 'open' if target_room.closed is None else 'closed',
@@ -171,13 +171,13 @@ def status(room_id):
         })
 
     return jsonify({
-            'room_id': room.id,
-            'room_name': room.room_name,
+            'roomId': room.id,
+            'roomName': room.room_name,
             'host': room.host.username,
             'status': 'open' if room.closed is None else 'closed',
             'created': room.created,
             'closed': room.closed,
-            'connected_user_list': users_json,
+            'connectedUserList': users_json,
             'connect': url_for('room.connect', room_id=room.id),
             'games': games_json
     }), 200
