@@ -31,43 +31,42 @@ def create_user():
         return jsonify({
             'error': 'Missing mandatory arguments (username, password or email)!',
             'missing_fields': missing_parameters
-        }), 400
+        }), 400, {'Access-Control-Allow-Origin': 'localhost:3000', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods':'*'}
     if password != repeat_password:
         return jsonify({
             'error': 'Password confirmation is invalid!',
             'incorrect_fields': ['repeat-password']
-        }), 400
+        }), 400, {'Access-Control-Allow-Origin': 'localhost:3000', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods':'*'}
     if not re.match(app.config['USERNAME_REGEXP'], username):
         return jsonify({
             'error': 'Bad username!',
             'incorrect_fields': ['username']
-        }), 400
+        }), 400, {'Access-Control-Allow-Origin': 'localhost:3000', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods':'*'}
     if not re.match(app.config['EMAIL_REGEXP'], email):
         return jsonify({
             'error': 'Bad email!',
             'incorrect_fields': ['email']
-        }), 400
+        }), 400, {'Access-Control-Allow-Origin': 'localhost:3000'}
     if not re.match(app.config['PASSWORD_REGEXP'], password):
         return jsonify({
             'error': 'Password does not satisfy security requirements!',
             'incorrect_fields': ['password']
-        }), 400
+        }), 400, {'Access-Control-Allow-Origin': 'localhost:3000', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods':'*'}
     if User.query.filter_by(username=username.casefold()).count() > 0:
         return jsonify({
             'error': 'User with username {username} already exists!'.format(username=username),
             'incorrect_fields': ['username']
-        }), 400
+        }), 400, {'Access-Control-Allow-Origin': 'localhost:3000', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods':'*'}
     if User.query.filter_by(email=email).first() is not None:
         return jsonify({
             'error': 'User with email {email} already exists!'.format(email=email),
             'incorrect_fields': ['email']
-        }), 400
-        abort(400, )
+        }), 400, {'Access-Control-Allow-Origin': 'localhost:3000', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods':'*'}
     if preferred_lang not in ['ru', 'en']:
         return jsonify({
             'error': 'Language {lang} is not supported!'.format(lang=preferred_lang),
             'incorrect_fields': ['preferred-lang']
-        }), 400
+        }), 400, {'Access-Control-Allow-Origin': 'localhost:3000', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods':'*'}
     user = User(
         username=username.casefold(),
         email=email.casefold(),
@@ -89,7 +88,8 @@ def create_user():
             'about_me': user.about_me
         }), \
         201, \
-        {'Location': url_for('user.get_user', username=username, _external=True)}
+        {'Location': url_for('user.get_user', username=username, _external=True),
+         'Access-Control-Allow-Origin': 'localhost:3000', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods':'*'}
 
 
 @user.route('{base_path}/user/<username>'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
