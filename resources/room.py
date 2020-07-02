@@ -33,6 +33,7 @@ def get_list():
 
 
 @room.route('{base_path}/room'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def create():
 
     token = request.json.get('token')
@@ -43,15 +44,25 @@ def create():
 
     hosted_room = Room.query.filter_by(host=requesting_user, closed=None).first()
     if hosted_room:
-        abort(403, 'User {username} already has opened room {room_name}! Close it by POST {close_url} before creating new one.'.format(
-            username=requesting_user.username,
-            room_name=hosted_room.room_name,
-            close_url=url_for('room.close', room_id=hosted_room.id)
-        ))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'User {username} already has opened room "{room_name}"!'.format(
+                    username=requesting_user.username,
+                    room_name=hosted_room.room_name)
+                }
+            ]
+        }), 403
 
     connected_room = requesting_user.connected_rooms
     if connected_room.count() > 0:
-        abort(403, 'User {username} already is connected to other room! Disconnect before creating new one.'.format(username=requesting_user.username))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'User {username} already is connected to other room!'.format(username=requesting_user.username)
+                }
+            ]
+        }), 403
 
     room_name = request.json.get('roomName')
     new_room = Room(room_name=room_name, host=requesting_user, created=datetime.utcnow())
@@ -81,11 +92,29 @@ def close(room_id):
 
     target_room = Room.query.filter_by(id=room_id).first()
     if target_room is None:
-        abort(404, 'Room with id {room_id} is not found!'.format(room_id=room_id))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Room with id {room_id} is not found!'.format(room_id=room_id)
+                }
+            ]
+        }), 404
     if target_room.closed is not None:
-        abort(400, 'Room {room_name} is already closed!'.format(room_name=target_room.room_name))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Room {room_name} is already closed!'.format(room_name=target_room.room_name)
+                }
+            ]
+        }), 400
     if target_room.host != requesting_user:
-        abort(403, 'Only host can close the room!')
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Only host can close the room!'
+                }
+            ]
+        }), 403
 
     for game in target_room.games:
         game.finished = datetime.utcnow()
@@ -116,17 +145,47 @@ def connect(room_id):
 
     connected_room = requesting_user.connected_rooms
     if connected_room.count() > 0:
-        abort(403, 'User {username} already is connected to other room! Disconnect before connecting to new one.'.format(username=requesting_user.username))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'User {username} already is connected to other room!'.format(username=requesting_user.username)
+                }
+            ]
+        }), 403
 
     target_room = Room.query.filter_by(id=room_id).first()
     if target_room is None:
-        abort(404, 'Room with id {room_id} is not found!'.format(room_id=room_id))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Room with id {room_id} is not found!'.format(room_id=room_id)
+                }
+            ]
+        }), 404
     if target_room.closed is not None:
-        abort(400, 'Room {room_name} is closed!'.format(room_name=target_room.room_name))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Room "{room_name}" is closed!'.format(room_name=target_room.room_name)
+                }
+            ]
+        }), 400
     if target_room.is_connected(requesting_user):
-        abort(400, 'User {username} is already connected to room {room_name}!'.format(username=requesting_user.username, room_name=target_room.room_name))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'User {username} is already connected to room "{room_name}"!'.format(username=requesting_user.username, room_name=target_room.room_name)
+                }
+            ]
+        }), 400
     if target_room.connected_users.count() >= app.config['MAX_USERS_PER_ROOM']:
-        abort(403, 'Maximum number of players exceeded for room {room_name}!'.format(room_name=target_room.room_name))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Maximum number of players exceeded for room "{room_name}"!'.format(room_name=target_room.room_name)
+                }
+            ]
+        }), 403
 
     target_room.connect(requesting_user)
     db.session.commit()
@@ -144,13 +203,37 @@ def disconnect(room_id):
 
     target_room = Room.query.filter_by(id=room_id).first()
     if target_room is None:
-        abort(404, 'Room with id {room_id} is not found!'.format(room_id=room_id))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Room with id {room_id} is not found!'.format(room_id=room_id)
+                }
+            ]
+        }), 404
     if target_room.closed is not None:
-        abort(400, 'Room {room_name} is closed!'.format(room_name=target_room.room_name))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Room "{room_name}" is closed!'.format(room_name=target_room.room_name)
+                }
+            ]
+        }), 400
     if not target_room.is_connected(requesting_user):
-        abort(400, 'User {username} is not connected to room {room_name}!'.format(username=requesting_user.username, room_name=target_room.room_name))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'User {username} is not connected to room "{room_name}"!'.format(username=requesting_user.username, room_name=target_room.room_name)
+                }
+            ]
+        }), 400
     if target_room.host == requesting_user:
-        abort(403, 'Host cannot disconnect the room!')
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Host cannot disconnect the room!'
+                }
+            ]
+        }), 403
 
     target_room.disconnect(requesting_user)
 
@@ -167,7 +250,11 @@ def status(room_id):
     connected_users = room.connected_users
     users_json = []
     for u in connected_users:
-        users_json.append(u.username)
+        users_json.append({
+            'username': u.username,
+            'ready': False,
+            'rating': 0
+        })
     games = room.games
     games_json = []
     for game in games:
