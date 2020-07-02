@@ -82,7 +82,7 @@ class GameMethodsCase(BaseCase):
         create_user3_payload = json.dumps({
             "email": email4,
             "username": username4,
-            "password": password,
+            "password": password,]
             "repeatPassword": password
         })
         auth_user3_payload = json.dumps({

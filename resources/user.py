@@ -12,6 +12,15 @@ from app.email import send_password_reset_email, send_registration_notification
 user = Blueprint('user', __name__)
 
 
+@user.route('{base_path}/user/regexps'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+def get_user_regexps():
+    return jsonify({
+        'email_regexp': app.config['EMAIL_REGEXP'],
+        'password_regexp': app.config['PASSWORD_REGEXP'],
+        'allowed_lang_codes': app.config['ALLOWED_LANGS']
+    }), 200
+
+
 @user.route('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
 @cross_origin()
 def create_user():
@@ -39,6 +48,7 @@ def create_user():
             'error': 'Password confirmation is invalid!',
             'incorrect_fields': ['repeatPassword']
         }), 400, {'Access-Control-Allow-Origin': 'localhost:3000', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods':'*'}
+
     if not re.match(app.config['USERNAME_REGEXP'], username):
         return jsonify({
             'error': 'Bad username!',
