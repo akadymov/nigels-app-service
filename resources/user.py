@@ -31,54 +31,33 @@ def create_user():
     repeat_password = request.json.get('repeatPassword')
     last_seen = datetime.utcnow()
     registered = datetime.utcnow()
-    missing_parameters = []
+    errors = []
     if username is None:
-        missing_parameters.append('username')
+        errors.append({'field': 'username', 'message': 'Required'})
     if password is None:
-        missing_parameters.append('password')
+        errors.append({'field': 'password', 'message': 'Required'})
     if email is None:
-        missing_parameters.append('email')
-    if missing_parameters:
-        return jsonify({
-            'error': 'Missing mandatory arguments (username, password or email)!',
-            'missing_fields': missing_parameters
-        }), 400, {'Access-Control-Allow-Origin': 'localhost:3000', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods':'*'}
+        errors.append({'field': 'email', 'message': 'Required'})
     if password != repeat_password:
-        return jsonify({
-            'error': 'Password confirmation is invalid!',
-            'incorrect_fields': ['repeatPassword']
-        }), 400, {'Access-Control-Allow-Origin': 'localhost:3000', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods':'*'}
-
+        errors.append({'field': 'repeatPassword', 'message': 'Password confirmation is invalid!'})
     if not re.match(app.config['USERNAME_REGEXP'], username):
-        return jsonify({
-            'error': 'Bad username!',
-            'incorrect_fields': ['username']
-        }), 400, {'Access-Control-Allow-Origin': 'localhost:3000', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods':'*'}
+        errors.append({'field': 'username', 'message': 'Bad username!'})
     if not re.match(app.config['EMAIL_REGEXP'], email):
-        return jsonify({
-            'error': 'Bad email!',
-            'incorrect_fields': ['email']
-        }), 400, {'Access-Control-Allow-Origin': 'localhost:3000'}
+        errors.append({'field': 'email', 'message': 'Bad email!'})
     if not re.match(app.config['PASSWORD_REGEXP'], password):
-        return jsonify({
-            'error': 'Password does not satisfy security requirements!',
-            'incorrect_fields': ['password']
-        }), 400, {'Access-Control-Allow-Origin': 'localhost:3000', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods':'*'}
+        errors.append({'field': 'password', 'message': 'Password does not satisfy security requirements!'})
     if User.query.filter_by(username=username.casefold()).count() > 0:
-        return jsonify({
-            'error': 'User with username {username} already exists!'.format(username=username),
-            'incorrect_fields': ['username']
-        }), 400, {'Access-Control-Allow-Origin': 'localhost:3000', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods':'*'}
+        errors.append(
+            {'field': 'username', 'message': 'User with username {username} already exists!'.format(username=username)})
     if User.query.filter_by(email=email).first() is not None:
+        errors.append({'field': 'email', 'message': 'User with email {email} already exists!'.format(email=email)})
+    if preferred_lang not in app.config['ALLOWED_LANGS']:
+        errors.append(
+            {'field': 'preferredLang', 'message': 'Language {lang} is not supported!'.format(lang=preferred_lang)})
+    if errors:
         return jsonify({
-            'error': 'User with email {email} already exists!'.format(email=email),
-            'incorrect_fields': ['email']
-        }), 400, {'Access-Control-Allow-Origin': 'localhost:3000', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods':'*'}
-    if preferred_lang not in ['ru', 'en']:
-        return jsonify({
-            'error': 'Language {lang} is not supported!'.format(lang=preferred_lang),
-            'incorrect_fields': ['preferredLang']
-        }), 400, {'Access-Control-Allow-Origin': 'localhost:3000', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods':'*'}
+            'errors': errors
+        }), 400
     user = User(
         username=username.casefold(),
         email=email.casefold(),
@@ -100,8 +79,7 @@ def create_user():
             'aboutMe': user.about_me
         }), \
         201, \
-        {'Location': url_for('user.get_user', username=username, _external=True),
-         'Access-Control-Allow-Origin': 'localhost:3000', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Allow-Methods':'*'}
+        {'Location': url_for('user.get_user', username=username, _external=True)}
 
 
 @user.route('{base_path}/user/<username>'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])

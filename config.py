@@ -35,4 +35,3 @@ class Config(object):
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME') or 'nigelsappservice@gmail.com'
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
     ADMINS = ['nigelsappservice@gmail.com', 'a-kadymov@yandex.ru']
-    CORS_HEADERS = 'Content-Type'
