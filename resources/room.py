@@ -264,7 +264,7 @@ def status(room_id):
     for u in connected_users:
         users_json.append({
             'username': u.username,
-            'ready': False,
+            'ready': u.ready,
             'rating': 0
         })
     games = room.games
@@ -286,3 +286,105 @@ def status(room_id):
             'connect': url_for('room.connect', room_id=room.id),
             'games': games_json
     }), 200
+
+
+@room.route('{base_path}/room/<room_id>/ready'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
+def ready(room_id):
+
+    token = request.json.get('token')
+    username = request.json.get('username')
+
+    requesting_user = User.verify_api_auth_token(token)
+    if username is None:
+        username = requesting_user.username
+    user_to_confirm = User.query.filter_by(username=username).first()
+
+    target_room = Room.query.filter_by(id=room_id).first()
+    if target_room is None:
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Room with id {room_id} is not found!'.format(room_id=room_id)
+                }
+            ]
+        }), 404
+    if requesting_user != user_to_confirm and requesting_user.username != target_room.host.username:
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Only host can confirm status of other players!'
+                }
+            ]
+        })
+    if target_room.closed is not None:
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Room "{room_name}" is closed!'.format(room_name=target_room.room_name)
+                }
+            ]
+        }), 400
+    if not target_room.is_connected(user_to_confirm):
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'User {username} is not connected to room "{room_name}"!'.format(username=user_to_confirm.username, room_name=target_room.room_name)
+                }
+            ]
+        }), 400
+
+    user_to_confirm.confirm_ready()
+
+    return jsonify({'ready': user_to_confirm.ready}), 200
+
+
+@room.route('{base_path}/room/<room_id>/ready/reset'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
+def reset_ready(room_id):
+
+    token = request.json.get('token')
+    username = request.json.get('username')
+
+    requesting_user = User.verify_api_auth_token(token)
+    if username is None:
+        username = requesting_user.username
+    user_to_reset = User.query.filter_by(username=username).first()
+
+    target_room = Room.query.filter_by(id=room_id).first()
+    if target_room is None:
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Room with id {room_id} is not found!'.format(room_id=room_id)
+                }
+            ]
+        }), 404
+    if requesting_user != user_to_reset and requesting_user.username != target_room.host.username:
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Only host can reset ready status of other players!'
+                }
+            ]
+        })
+    if target_room.closed is not None:
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Room "{room_name}" is closed!'.format(room_name=target_room.room_name)
+                }
+            ]
+        }), 400
+    if not target_room.is_connected(user_to_reset):
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'User {username} is not connected to room "{room_name}"!'.format(username=user_to_reset.username, room_name=target_room.room_name)
+                }
+            ]
+        }), 400
+
+    user_to_reset.reset_ready()
+
+    return jsonify({'ready': user_to_reset.ready}), 200

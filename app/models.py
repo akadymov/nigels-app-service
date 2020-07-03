@@ -11,8 +11,7 @@ import jwt
 connections = db.Table(
     'connections',
     db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
-    db.Column('room_id', db.Integer, db.ForeignKey('room.id')),
-    db.Column('ready', db.Integer, nullable=False, default=0)
+    db.Column('room_id', db.Integer, db.ForeignKey('room.id'))
 )
 
 
@@ -34,7 +33,8 @@ class User(UserMixin, db.Model):
     registered = db.Column(db.DateTime)
     about_me = db.Column(db.String(140), nullable=True)
     social_id = db.Column(db.String(64), unique=True, nullable=True)
-    preferred_language = db.Column(db.String(6), default='en')
+    preferred_language = db.Column(db.String(6), default='en'),
+    ready = db.Column('ready', db.Integer, nullable=False, default=0)
     connected_rooms_bad = db.relationship(
         'Room',
         secondary=connections,
@@ -62,6 +62,14 @@ class User(UserMixin, db.Model):
     def generate_auth_token(self):
         s = Serializer(app.config['SECRET_KEY'], expires_in=app.config['TOKEN_LIFETIME'])
         return s.dumps({'username': self.username, 'email': self.email})
+
+    def confirm_ready(self):
+        self.ready = 1
+        db.session.commit()
+
+    def reset_ready(self):
+        self.ready = 0
+        db.session.commit()
 
     @staticmethod
     def verify_auth_token(token):
@@ -139,6 +147,7 @@ class Room(db.Model):
         db.session.commit()
 
     def disconnect(self, user):
+        user.ready = 0
         self.connected_users.remove(user)
         db.session.commit()
 

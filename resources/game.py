@@ -106,6 +106,7 @@ def finish():
     for player in hosted_room.connected_users.all():
         g.connect(player)
         players_list.append(player.username)
+        player.reset_ready()
 
     return jsonify({
         'gameId': g.id,
