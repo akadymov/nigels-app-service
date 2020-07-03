@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from flask import url_for, request, jsonify, abort, Blueprint
+from flask_cors import cross_origin
 from app import app, db
 from app.models import User, Room, Game, Player, Hand
 from datetime import datetime
@@ -11,6 +12,7 @@ game = Blueprint('game', __name__)
 
 
 @game.route('{base_path}/game/<game_id>/score'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+@cross_origin()
 def game_score(game_id):
 
     g = Game.query.filter_by(id=game_id).first()
@@ -20,12 +22,13 @@ def game_score(game_id):
     game_scores = g.get_scores()
 
     return jsonify({
-        'game_id': game_id,
-        'game_scores': game_scores
+        'gameId': game_id,
+        'gameScores': game_scores
     }), 200
 
 
 @game.route('{base_path}/game/start'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def start():
 
     token = request.json.get('token')
@@ -64,7 +67,7 @@ def start():
     db.session.commit()
 
     return jsonify({
-        'game_id': g.id,
+        'gameId': g.id,
         'room': g.room.room_name,
         'host': g.room.host.username,
         'status': 'active' if g.finished is None else 'finished',
@@ -74,6 +77,7 @@ def start():
 
 
 @game.route('{base_path}/game/finish'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def finish():
 
     token = request.json.get('token')
@@ -104,7 +108,7 @@ def finish():
         players_list.append(player.username)
 
     return jsonify({
-        'game_id': g.id,
+        'gameId': g.id,
         'room': g.room.room_name,
         'host': g.room.host.username,
         'status': 'active' if g.finished is None else 'finished',
@@ -115,6 +119,7 @@ def finish():
 
 
 @game.route('{base_path}/game/<game_id>/positions'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def positions(game_id):
 
     token = request.json.get('token')
@@ -149,12 +154,13 @@ def positions(game_id):
         })
 
     return jsonify({
-        'game_id': game_id,
+        'gameId': game_id,
         'players': players_list
     }), 200
 
 
 @game.route('{base_path}/game/<game_id>'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+@cross_origin()
 def status(game_id):
     game = Game.query.filter_by(id=game_id).first()
     if not game:
@@ -174,12 +180,12 @@ def status(game_id):
     played_hands_count = Hand.query.filter_by(game_id=game_id, is_closed=1).count()
 
     return jsonify({
-            'game_id': game.id,
-            'room_id': game.room_id,
-            'current_hand_id': current_hand.id if current_hand else None,
-            'current_hand_serial_no': current_hand.serial_no if current_hand else None,
-            'current_hand_location': url_for('hand.status', hand_id=current_hand.id, game_id=game_id) if current_hand else None,
-            'played_hands_count': played_hands_count,
+            'gameId': game.id,
+            'roomId': game.room_id,
+            'currentHandId': current_hand.id if current_hand else None,
+            'currentHandSerialNo': current_hand.serial_no if current_hand else None,
+            'currentHandLocation': url_for('hand.status', hand_id=current_hand.id, game_id=game_id) if current_hand else None,
+            'playedHandsCount': played_hands_count,
             'started': game.started,
             'status': 'open' if game.finished is None else 'finished',
             'finished': game.finished,

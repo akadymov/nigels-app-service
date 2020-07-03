@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from flask import url_for, request, jsonify, abort, Blueprint, Response
+from flask_cors import cross_origin
 from app import app, db
 from app.models import User
 from datetime import datetime
@@ -21,60 +22,41 @@ def get_user_regexps():
 
 
 @user.route('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def create_user():
     username = request.json.get('username')
     email = request.json.get('email')
-    preferred_lang = request.json.get('preferred-lang') or app.config['DEFAULT_LANG']
+    preferred_lang = request.json.get('preferredLang') or app.config['DEFAULT_LANG']
     password = request.json.get('password')
-    repeat_password = request.json.get('repeat-password')
+    repeat_password = request.json.get('repeatPassword')
     last_seen = datetime.utcnow()
     registered = datetime.utcnow()
-    missing_parameters = []
+    errors = []
     if username is None:
-        missing_parameters.append('username')
+        errors.append({'field': 'username', 'message': 'Required'})
     if password is None:
-        missing_parameters.append('password')
+        errors.append({'field': 'password', 'message': 'Required'})
     if email is None:
-        missing_parameters.append('email')
-    if missing_parameters:
-        return jsonify({
-            'error': 'Missing mandatory arguments (username, password or email)!',
-            'missing_fields': missing_parameters
-        }), 400
+        errors.append({'field': 'email', 'message': 'Required'})
     if password != repeat_password:
-        return jsonify({
-            'error': 'Password confirmation is invalid!',
-            'incorrect_fields': ['repeat-password']
-        }), 400
+        errors.append({'field': 'repeatPassword', 'message': 'Password confirmation is invalid!'})
     if not re.match(app.config['USERNAME_REGEXP'], username):
-        return jsonify({
-            'error': 'Bad username!',
-            'incorrect_fields': ['username']
-        }), 400
+        errors.append({'field': 'username', 'message': 'Bad username!'})
     if not re.match(app.config['EMAIL_REGEXP'], email):
-        return jsonify({
-            'error': 'Bad email!',
-            'incorrect_fields': ['email']
-        }), 400
+        errors.append({'field': 'email', 'message': 'Bad email!'})
     if not re.match(app.config['PASSWORD_REGEXP'], password):
-        return jsonify({
-            'error': 'Password does not satisfy security requirements!',
-            'incorrect_fields': ['password']
-        }), 400
+        errors.append({'field': 'password', 'message': 'Password does not satisfy security requirements!'})
     if User.query.filter_by(username=username.casefold()).count() > 0:
-        return jsonify({
-            'error': 'User with username {username} already exists!'.format(username=username),
-            'incorrect_fields': ['username']
-        }), 400
+        errors.append(
+            {'field': 'username', 'message': 'User with username {username} already exists!'.format(username=username)})
     if User.query.filter_by(email=email).first() is not None:
-        return jsonify({
-            'error': 'User with email {email} already exists!'.format(email=email),
-            'incorrect_fields': ['email']
-        }), 400
+        errors.append({'field': 'email', 'message': 'User with email {email} already exists!'.format(email=email)})
     if preferred_lang not in app.config['ALLOWED_LANGS']:
+        errors.append(
+            {'field': 'preferredLang', 'message': 'Language {lang} is not supported!'.format(lang=preferred_lang)})
+    if errors:
         return jsonify({
-            'error': 'Language {lang} is not supported!'.format(lang=preferred_lang),
-            'incorrect_fields': ['preferred-lang']
+            'errors': errors
         }), 400
     user = User(
         username=username.casefold(),
@@ -91,16 +73,17 @@ def create_user():
         jsonify({
             'username': user.username.casefold(),
             'email': user.email,
-            'preferred-lang': user.preferred_language,
+            'preferredLang': user.preferred_language,
             'registered': user.registered,
-            'last_seen': user.last_seen,
-            'about_me': user.about_me
+            'lastSeen': user.last_seen,
+            'aboutMe': user.about_me
         }), \
         201, \
         {'Location': url_for('user.get_user', username=username, _external=True)}
 
 
 @user.route('{base_path}/user/<username>'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+@cross_origin()
 def get_user(username):
     username = username.casefold()
     user = User.query.filter_by(username=username).first()
@@ -109,14 +92,15 @@ def get_user(username):
     return jsonify({
         'username': user.username,
         'email': user.email,
-        'preferred-lang': user.preferred_language,
+        'preferredLang': user.preferred_language,
         'registered': user.registered,
-        'last_seen': user.last_seen,
-        'about_me': user.about_me
+        'lastSeen': user.last_seen,
+        'aboutMe': user.about_me
     }), 200
 
 
 @user.route('{base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def post_token():
     username = request.json.get('username').casefold()
     password = request.json.get('password')
@@ -127,11 +111,12 @@ def post_token():
         token = user.generate_auth_token()
         return jsonify({
             'token': token.decode('ascii'),
-            'expires_in': app.config['TOKEN_LIFETIME']
+            'expiresIn': app.config['TOKEN_LIFETIME']
         }), 201
 
 
 @user.route('{base_path}/user/<username>'.format(base_path=app.config['API_BASE_PATH']), methods=['PUT'])
+@cross_origin()
 def edit_user(username):
 
     token = request.json.get('token')
@@ -145,8 +130,8 @@ def edit_user(username):
         abort(401, 'You can update only your own profile ({username})!'.format(username=str(requesting_user.username)))
 
     email = request.json.get('email') or modified_user.email
-    about_me = request.json.get('about_me') or modified_user.about_me
-    preferred_lang = request.json.get('preferred-lang') or modified_user.preferred_language
+    about_me = request.json.get('aboutMe') or modified_user.about_me
+    preferred_lang = request.json.get('preferredLang') or modified_user.preferred_language
     if not re.match(app.config['EMAIL_REGEXP'], email):
         abort(400, 'Bad email!')
     conflict_user = User.query.filter_by(email=email).first()
@@ -164,14 +149,15 @@ def edit_user(username):
     return jsonify({
         'username': modified_user.username,
         'email': modified_user.email,
-        'preferred-lang': modified_user.preferred_language,
+        'preferredLang': modified_user.preferred_language,
         'registered': modified_user.registered,
-        'last_seen': modified_user.last_seen,
-        'about_me': modified_user.about_me
+        'lastSeen': modified_user.last_seen,
+        'aboutMe': modified_user.about_me
     }), 200
 
 
 @user.route('{base_path}/user/password/recover'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def send_password_recovery():
 
     email = request.json.get('email')
@@ -186,6 +172,7 @@ def send_password_recovery():
 
 
 @user.route('{base_path}/user/password/reset'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def reset_password():
 
     new_password = request.json.get('new_password')
@@ -205,6 +192,7 @@ def reset_password():
 
 
 @user.route('/user/reset_password/<token>', methods=['GET'])
+@cross_origin()
 def reset_password_form(token):
 
     user = User.verify_reset_password_token(token)

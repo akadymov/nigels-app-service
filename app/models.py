@@ -123,9 +123,11 @@ class Room(db.Model):
 
     def connect(self, user):
         self.connected_users.append(user)
+        db.session.commit()
 
     def disconnect(self, user):
         self.connected_users.remove(user)
+        db.session.commit()
 
     def is_connected(self, user):
         return self.connected_users.filter(

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from flask import url_for, request, jsonify, abort, Blueprint
+from flask_cors import cross_origin
 from app import app, db
 from app.models import User, Room, Game, Player, Hand, DealtCards, HandScore
 import random
@@ -11,6 +12,7 @@ hand = Blueprint('hand', __name__)
 
 
 @hand.route('{base_path}/game/<game_id>/hand/deal'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def deal_cards(game_id):
 
     token = request.json.get('token')
@@ -112,17 +114,18 @@ def deal_cards(game_id):
 
     return jsonify(
         {
-            'hand_id': h.id,
-            'game_id': h.game_id,
-            'dealt_cards_per_player': h.cards_per_player,
+            'handId': h.id,
+            'gameId': h.game_id,
+            'dealtCardsPerPlayer': h.cards_per_player,
             'trump': h.trump,
-            'starting_player': starting_player.username,
-            # 'dealt_cards': players_cards
+            'startingPlayer': starting_player.username,
+            # 'dealtCards': players_cards
         }
     ), 200
 
 
 @hand.route('{base_path}/game/<game_id>/hand/<hand_id>/cards'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def get_hand_cards(game_id, hand_id):
 
     token = request.json.get('token')
@@ -144,16 +147,17 @@ def get_hand_cards(game_id, hand_id):
         cards = h.get_user_current_hand(requesting_user)
 
     return jsonify({
-        'game_id': game_id,
-        'hand_id': hand_id,
-        'cards_per_player': h.cards_per_player,
+        'gameId': game_id,
+        'handId': hand_id,
+        'cardsPerPlayer': h.cards_per_player,
         'trump': h.trump,
         'player': requesting_user.username,
-        'cards_in_hand': cards
+        'cardsInHand': cards
     }), 200
 
 
 @hand.route('{base_path}/game/<game_id>/hand/<hand_id>'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+@cross_origin()
 def status(game_id, hand_id):
 
     game = Game.query.filter_by(id=game_id).first()
@@ -175,24 +179,24 @@ def status(game_id, hand_id):
             players_enriched.append({
                 'username': user.username,
                 'position': hand.get_position(user),
-                'bet_size': user_scores.bet_size if user_scores else None,
-                'took_turns': user_scores.took_turns() if user_scores else 0,
-                'cards_on_hand': len(hand.get_user_current_hand(user))
+                'betSize': user_scores.bet_size if user_scores else None,
+                'tookTurns': user_scores.took_turns() if user_scores else 0,
+                'cardsOnHand': len(hand.get_user_current_hand(user))
             })
 
     current_turn = hand.get_current_turn(closed=True)
     next_player = hand.next_card_putting_user()
 
     return jsonify({
-            'hand_id': hand.id,
-            'next_acting_player': next_player.username if next_player else None,
-            'game_id': game.id,
-            'room_id': game.room_id,
-            'hand_serial_no': hand.serial_no,
-            'cards_per_player': hand.cards_per_player,
+            'handId': hand.id,
+            'nextActingPlayer': next_player.username if next_player else None,
+            'gameId': game.id,
+            'roomId': game.room_id,
+            'handSerialNo': hand.serial_no,
+            'cardsPerPlayer': hand.cards_per_player,
             'trump': hand.trump,
-            'starting_player': hand.starting_player,
-            'hand_is_closed': hand.is_closed,
+            'startingPlayer': hand.starting_player,
+            'handIsClosed': hand.is_closed,
             'players': players_enriched,
-            'current_turn_serial_no': current_turn.serial_no if current_turn else None
+            'currentTurnSerialNo': current_turn.serial_no if current_turn else None
     }), 200

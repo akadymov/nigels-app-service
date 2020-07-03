@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from flask import url_for, request, jsonify, abort, Blueprint
+from flask_cors import cross_origin
 from app import app, db
 from app.models import User, Game, Player, Hand, HandScore, Turn, DealtCards, TurnCard
 from datetime import datetime
@@ -10,12 +11,13 @@ turn = Blueprint('turn', __name__)
 
 
 @turn.route('{base_path}/game/<game_id>/hand/<hand_id>/turn/bet'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def bet(game_id, hand_id):
 
     token = request.json.get('token')
     requesting_user = User.verify_api_auth_token(token)
 
-    bet_size = request.json.get('bet_size')
+    bet_size = request.json.get('betSize')
     if bet_size is None:
         abort(400, 'No bet size in request!')
 
@@ -54,17 +56,18 @@ def bet(game_id, hand_id):
     next_player = h.next_betting_user()
 
     return jsonify({
-        'number_of_players': game.players.count(),
-        'serial_number_of_hand': h.serial_no,
-        'player_position': requesting_player_current_pos,
-        'is_last_player_to_bet': is_last_bet,
-        'next_player_to_bet': next_player.username if next_player and not is_last_bet else None,
-        'made_bets': made_bets + bet_size,
-        'cards_per_player = restricted sum of bets': h.cards_per_player
+        'numberOfPlayers': game.players.count(),
+        'serialNumberOfHand': h.serial_no,
+        'playerPosition': requesting_player_current_pos,
+        'isLastPlayerToBet': is_last_bet,
+        'nextPlayerToBet': next_player.username if next_player and not is_last_bet else None,
+        'madeBets': made_bets + bet_size,
+        'cardsPerPlayer': h.cards_per_player
     }), 200
 
 
 @turn.route('{base_path}/game/<game_id>/hand/<hand_id>/turn/card/put/<card_id>'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
 def put_card(game_id, hand_id, card_id):
 
     token = request.json.get('token')
@@ -154,12 +157,12 @@ def put_card(game_id, hand_id, card_id):
         cards_on_table.append(str(card.card_id) + card.card_suit)
 
     return jsonify({
-        'turn_no': t.serial_no,
-        'cards_on_table': cards_on_table,
-        'starting_suit': t.get_starting_suit(),
-        'highest_card': str(t.highest_card()['id']) + t.highest_card()['suit'],
-        'took_player': took_player.username if took_player else None,
-        'hand_is_finished': True if h.is_closed == 1 else False,
-        'game_is finished': True if g.finished else False,
-        'game_scores': game_scores
+        'turnNo': t.serial_no,
+        'cardsOnTable': cards_on_table,
+        'startingSuit': t.get_starting_suit(),
+        'highestCard': str(t.highest_card()['id']) + t.highest_card()['suit'],
+        'tookPlayer': took_player.username if took_player else None,
+        'handIsFinished': True if h.is_closed == 1 else False,
+        'gameIsFinished': True if g.finished else False,
+        'gameScores': game_scores
     }), 200

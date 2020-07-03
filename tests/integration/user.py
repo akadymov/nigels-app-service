@@ -16,7 +16,7 @@ class UserMethodsCase(BaseCase):
             "email": email,
             "username": username,
             "password": password,
-            "repeat-password": password
+            "repeatPassword": password
         })
         payload2 = json.dumps({
             "username": username,
@@ -36,9 +36,9 @@ class UserMethodsCase(BaseCase):
         self.assertEqual(201, response.status_code,
                          msg='Invalid create user response code ({})!'.format(response.status_code))
         self.assertEqual(email, response.json['email'], msg='Invalid email in response body!')
-        self.assertIsNone(response.json['about_me'], msg='About me is not None in response body!')
-        self.assertEqual(str, type(response.json['last_seen']), msg='No last seen timestamp in response body!')
-        self.assertEqual(app.config['DEFAULT_LANG'], response.json['preferred-lang'],
+        self.assertIsNone(response.json['aboutMe'], msg='About me is not None in response body!')
+        self.assertEqual(str, type(response.json['lastSeen']), msg='No last seen timestamp in response body!')
+        self.assertEqual(app.config['DEFAULT_LANG'], response.json['preferredLang'],
                          msg='Preferred lang is not set to default for signed up user!')
         self.assertEqual(str, type(response.json['registered']), msg='No registered timestamp in response body!')
         self.assertEqual('matroskin', response.json['username'], msg='Invalid username in response body!')
@@ -47,10 +47,10 @@ class UserMethodsCase(BaseCase):
                          msg='Invalid response code ({}) in get user response!'.format(get_user_response.status_code))
         self.assertEqual(email, get_user_response.json['email'],
                          msg='Invalid email in get user response body!')
-        self.assertIsNone(get_user_response.json['about_me'], msg='About me is not None in get user response body!')
-        self.assertEqual(str, type(get_user_response.json['last_seen']),
+        self.assertIsNone(get_user_response.json['aboutMe'], msg='About me is not None in get user response body!')
+        self.assertEqual(str, type(get_user_response.json['lastSeen']),
                          msg='No last seen timestamp in get user response body!')
-        self.assertEqual(app.config['DEFAULT_LANG'], get_user_response.json['preferred-lang'],
+        self.assertEqual(app.config['DEFAULT_LANG'], get_user_response.json['preferredLang'],
                          msg='Preferred lang is not set to default for signed up user!')
         self.assertEqual(str, type(get_user_response.json['registered']),
                          msg='No registered timestamp in response body!')
@@ -59,7 +59,7 @@ class UserMethodsCase(BaseCase):
 
         self.assertEqual(201, token_response.status_code,
                          msg='Invalid response code ({}) in post token response!'.format(token_response.status_code))
-        self.assertIsNotNone(token_response.json['expires_in'], msg='No expiration time in post token response body!')
+        self.assertIsNotNone(token_response.json['expiresIn'], msg='No expiration time in post token response body!')
         self.assertIsNotNone(token_response.json['token'], msg='No jwt-token time in post token response body!')
 
     def test_bad_email_signup(self):
@@ -71,7 +71,7 @@ class UserMethodsCase(BaseCase):
             "email": email,
             "username": username,
             "password": password,
-            "repeat-password": password
+            "repeatPassword": password
         })
 
         # When
@@ -99,13 +99,13 @@ class UserMethodsCase(BaseCase):
             "email": email,
             "username": username1,
             "password": password,
-            "repeat-password": password
+            "repeatPassword": password
         })
         payload2 = json.dumps({
             "email": email,
             "username": username2,
             "password": password,
-            "repeat-password": password
+            "repeatPassword": password
         })
 
         # When
@@ -137,13 +137,13 @@ class UserMethodsCase(BaseCase):
             "email": email1,
             "username": username,
             "password": password,
-            "repeat-password": password
+            "repeatPassword": password
         })
         payload2 = json.dumps({
             "email": email2,
             "username": username,
             "password": password,
-            "repeat-password": password
+            "repeatPassword": password
         })
 
         # When
@@ -174,7 +174,7 @@ class UserMethodsCase(BaseCase):
             "email": email,
             "username": username,
             "password": password,
-            "repeat-password": password
+            "repeatPassword": password
         })
 
         # When
@@ -203,7 +203,7 @@ class UserMethodsCase(BaseCase):
             "email": email,
             "username": username,
             "password": password,
-            "repeat-password": password
+            "repeatPassword": password
         })
         payload2 = json.dumps({
             "username": username,
@@ -235,7 +235,7 @@ class UserMethodsCase(BaseCase):
             "email": email,
             "username": username,
             "password": password,
-            "repeat-password": password
+            "repeatPassword": password
         })
         payload2 = json.dumps({
             "username": username,
@@ -245,7 +245,7 @@ class UserMethodsCase(BaseCase):
             "email": email2,
             "username": username2,
             "password": password,
-            "repeat-password": password
+            "repeatPassword": password
         })
 
         # When
@@ -264,14 +264,14 @@ class UserMethodsCase(BaseCase):
 
         self.assertEqual(201, token_response.status_code,
                          msg='Invalid response code ({}) in post token response!'.format(token_response.status_code))
-        self.assertIsNotNone(token_response.json['expires_in'], msg='No expiration time in post token response body!')
+        self.assertIsNotNone(token_response.json['expiresIn'], msg='No expiration time in post token response body!')
         self.assertIsNotNone(token_response.json['token'], msg='No jwt-token time in post token response body!')
 
         payload4 = json.dumps({
             "email": email,
-            "about_me": about_me,
+            "aboutMe": about_me,
             "token": token_response.json['token'],
-            "preferred-lang": "ru"
+            "preferredLang": "ru"
         })
 
         update_profile_response = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
@@ -279,9 +279,9 @@ class UserMethodsCase(BaseCase):
 
         payload5 = json.dumps({
             "email": email2,
-            "about_me": about_me,
+            "aboutMe": about_me,
             "token": token_response.json['token'],
-            "preferred-lang": "ru"
+            "preferredLang": "ru"
         })
 
         update_profile_response2 = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username2),
@@ -289,9 +289,9 @@ class UserMethodsCase(BaseCase):
 
         payload6 = json.dumps({
             "email": username,
-            "about_me": about_me,
+            "aboutMe": about_me,
             "token": token_response.json['token'],
-            "preferred-lang": "ru"
+            "preferredLang": "ru"
         })
 
         update_profile_response3 = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
@@ -299,9 +299,9 @@ class UserMethodsCase(BaseCase):
 
         payload7 = json.dumps({
             "email": email2,
-            "about_me": about_me,
+            "aboutMe": about_me,
             "token": token_response.json['token'],
-            "preferred-lang": "ru"
+            "preferredLang": "ru"
         })
 
         update_profile_response4 = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
@@ -309,9 +309,9 @@ class UserMethodsCase(BaseCase):
 
         payload8 = json.dumps({
             "email": email2,
-            "about_me": about_me,
+            "aboutMe": about_me,
             "token": token_response.json['token'],
-            "preferred-lang": "de"
+            "preferredLang": "de"
         })
 
         update_profile_response5 = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
@@ -328,9 +328,9 @@ class UserMethodsCase(BaseCase):
         self.assertEqual(400, update_profile_response5.status_code,
                          msg="Invalid response code ({}) in update profile with bad lang response!".format(update_profile_response4.status_code))
         self.assertEqual(email, update_profile_response.json['email'], msg='Invalid email in get profile response body!')
-        self.assertEqual(about_me, update_profile_response.json['about_me'], msg='About me is incorrect in get profile response body!')
-        self.assertEqual(str, type(update_profile_response.json['last_seen']), msg='No last seen timestamp in get profile response body!')
-        self.assertEqual("ru", update_profile_response.json['preferred-lang'],
+        self.assertEqual(about_me, update_profile_response.json['aboutMe'], msg='About me is incorrect in get profile response body!')
+        self.assertEqual(str, type(update_profile_response.json['lastSeen']), msg='No last seen timestamp in get profile response body!')
+        self.assertEqual("ru", update_profile_response.json['preferredLang'],
                          msg='Preferred lang is not changed!')
         self.assertEqual(str, type(update_profile_response.json['registered']), msg='No registered timestamp in get profile response body!')
         self.assertEqual('matroskin', update_profile_response.json['username'], msg='Invalid username in get profile response body!')
@@ -345,7 +345,7 @@ class UserMethodsCase(BaseCase):
             "email": email,
             "username": username,
             "password": password,
-            "repeat-password": password
+            "repeatPassword": password
         })
         payload2 = json.dumps({
             "username": username,
@@ -364,7 +364,7 @@ class UserMethodsCase(BaseCase):
 
         self.assertEqual(201, token_response.status_code,
                          msg='Invalid response code ({}) in post token response!'.format(token_response.status_code))
-        self.assertIsNotNone(token_response.json['expires_in'], msg='No expiration time in post token response body!')
+        self.assertIsNotNone(token_response.json['expiresIn'], msg='No expiration time in post token response body!')
         self.assertIsNotNone(token_response.json['token'], msg='No jwt-token time in post token response body!')
 
         payload3 = json.dumps({
@@ -378,9 +378,9 @@ class UserMethodsCase(BaseCase):
         self.assertEqual(200, update_profile_response.status_code,
                          msg='Invalid response code ({}) in get profile response!'.format(update_profile_response.status_code))
         self.assertEqual(email2, update_profile_response.json['email'], msg='Invalid email in get profile response body!')
-        self.assertIsNone(update_profile_response.json['about_me'], msg='About me is not None in response body!')
-        self.assertEqual(str, type(update_profile_response.json['last_seen']), msg='No last seen timestamp in get profile response body!')
-        self.assertEqual(app.config['DEFAULT_LANG'], update_profile_response.json['preferred-lang'],
+        self.assertIsNone(update_profile_response.json['aboutMe'], msg='About me is not None in response body!')
+        self.assertEqual(str, type(update_profile_response.json['lastSeen']), msg='No last seen timestamp in get profile response body!')
+        self.assertEqual(app.config['DEFAULT_LANG'], update_profile_response.json['preferredLang'],
                          msg='Preferred lang is not set to default for signed up user!')
         self.assertEqual(str, type(update_profile_response.json['registered']), msg='No registered timestamp in get profile response body!')
         self.assertEqual('matroskin', update_profile_response.json['username'], msg='Invalid username in get profile response body!')
@@ -394,7 +394,7 @@ class UserMethodsCase(BaseCase):
             "email": email,
             "username": username,
             "password": password,
-            "repeat-password": password
+            "repeatPassword": password
         })
         payload2 = json.dumps({
             "username": username,
@@ -413,7 +413,7 @@ class UserMethodsCase(BaseCase):
 
         self.assertEqual(201, token_response.status_code,
                          msg='Invalid response code ({}) in post token response!'.format(token_response.status_code))
-        self.assertIsNotNone(token_response.json['expires_in'], msg='No expiration time in post token response body!')
+        self.assertIsNotNone(token_response.json['expiresIn'], msg='No expiration time in post token response body!')
         self.assertIsNotNone(token_response.json['token'], msg='No jwt-token time in post token response body!')
 
         payload3 = json.dumps({
