@@ -198,8 +198,12 @@ def connect(room_id):
 def disconnect(room_id):
 
     token = request.json.get('token')
+    username = request.json.get('username')
 
     requesting_user = User.verify_api_auth_token(token)
+    if username is None:
+        username = requesting_user.username
+    user_to_disconnect = User.query.filter_by(username=username).first()
 
     target_room = Room.query.filter_by(id=room_id).first()
     if target_room is None:
@@ -210,6 +214,14 @@ def disconnect(room_id):
                 }
             ]
         }), 404
+    if requesting_user != user_to_disconnect and requesting_user.username != target_room.host.username:
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Only host can kick players from room!'
+                }
+            ]
+        })
     if target_room.closed is not None:
         return jsonify({
             'errors': [
@@ -218,15 +230,15 @@ def disconnect(room_id):
                 }
             ]
         }), 400
-    if not target_room.is_connected(requesting_user):
+    if not target_room.is_connected(user_to_disconnect):
         return jsonify({
             'errors': [
                 {
-                    'message': 'User {username} is not connected to room "{room_name}"!'.format(username=requesting_user.username, room_name=target_room.room_name)
+                    'message': 'User {username} is not connected to room "{room_name}"!'.format(username=user_to_disconnect.username, room_name=target_room.room_name)
                 }
             ]
         }), 400
-    if target_room.host == requesting_user:
+    if target_room.host == user_to_disconnect:
         return jsonify({
             'errors': [
                 {
@@ -235,7 +247,7 @@ def disconnect(room_id):
             ]
         }), 403
 
-    target_room.disconnect(requesting_user)
+    target_room.disconnect(user_to_disconnect)
 
     return jsonify(200)
 
