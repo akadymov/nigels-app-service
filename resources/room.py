@@ -279,7 +279,7 @@ def status(room_id):
             'roomId': room.id,
             'roomName': room.room_name,
             'host': room.host.username,
-            'status': 'open' if room.closed is None else 'closed',
+            'status': 'closed' if room.closed else ('in game' if len(games_json)>0 else 'open'),
             'created': room.created,
             'closed': room.closed,
             'connectedUserList': users_json,

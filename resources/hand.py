@@ -23,14 +23,32 @@ def deal_cards(game_id):
     game = Game.query.filter_by(id=game_id).first()
     room = Room.query.filter_by(id=game.room_id).first()
     if room.host != requesting_user:
-        abort(403, 'Only host can deal cards!')
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Only host can deal cards!'
+                }
+            ]
+        }), 403
 
     if game.has_open_hands():
-        abort(403, 'Game {game_id} has open hand {hand_id}! You should finish it before dealing new hand!'.format(game_id=game_id, hand_id=game.last_open_hand().id))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Game {game_id} has open hand {hand_id}! You should finish it before dealing new hand!'.format(game_id=game_id, hand_id=game.last_open_hand().id)
+                }
+            ]
+        }), 403
 
     # no more hands allowed
     if game.all_hands_played():
-        abort(403, 'All hands in game {game_id} are already dealt!'.format(game_id=game_id))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'All hands in game {game_id} are already dealt!'.format(game_id=game_id)
+                }
+            ]
+        }), 403
 
     # first hand configuration by default
     serial_no = 1
@@ -75,7 +93,14 @@ def deal_cards(game_id):
         # next starting player is the one who was second is previous hand
         starting_player = last_closed_hand.get_player_by_pos(2)
 
-    h = Hand(id=new_hand_id, game_id=int(game_id), serial_no=serial_no, trump=trump, cards_per_player=cards_per_player, starting_player=starting_player.id)
+    h = Hand(
+        id=new_hand_id,
+        game_id=int(game_id),
+        serial_no=serial_no,
+        trump=trump,
+        cards_per_player=cards_per_player,
+        starting_player=starting_player.id
+    )
     db.session.add(h)
 
     # creating and shuffling card deck
