@@ -225,7 +225,7 @@ def disconnect(room_id):
                     'message': 'User {username} is not connected to room "{room_name}"!'.format(username=requesting_user.username, room_name=target_room.room_name)
                 }
             ]
-        }), 400
+        }), 200
     if target_room.host == requesting_user:
         return jsonify({
             'errors': [

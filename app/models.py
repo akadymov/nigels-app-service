@@ -2,7 +2,7 @@ from datetime import datetime
 from app import db, login, app
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired)
+# from itsdangerous import (TimedJSONWebSignatureSerializer as Serializer, BadSignature, SignatureExpired)
 from flask import url_for, abort
 from time import time
 import jwt
@@ -37,7 +37,8 @@ class User(UserMixin, db.Model):
     connected_rooms_bad = db.relationship(
         'Room',
         secondary=connections,
-        backref=db.backref('connected_users', lazy='dynamic')
+        backref=db.backref('connected_users', lazy='dynamic'),
+        overlaps="connected_rooms_bad,connected_users"
     )
     active_games = db.relationship(
         'Game',
@@ -59,25 +60,37 @@ class User(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
     def generate_auth_token(self):
-        s = Serializer(app.config['SECRET_KEY'], expires_in=app.config['TOKEN_LIFETIME'])
-        return s.dumps({'username': self.username, 'email': self.email})
+        # s = Serializer(app.config['SECRET_KEY']) #, expires_in=app.config['TOKEN_LIFETIME'])
+        return jwt.encode(
+            {'username': self.username, 'email': self.email},
+            app.config['SECRET_KEY'],
+            algorithm='HS256'
+        )
+        # return s.dumps({'username': self.username, 'email': self.email})
 
     @staticmethod
     def verify_auth_token(token):
-        s = Serializer(app.config['SECRET_KEY'])
+        # s = Serializer(app.config['SECRET_KEY'])
         try:
-            data = s.loads(token)
-        except SignatureExpired:
+            #print(token)
+            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+            #print(data)
+        except jwt.ExpiredSignatureError:
             return None
-        except BadSignature:
+        except jwt.InvalidIssuerError:
             return None
+        except jwt.InvalidTokenError:
+            return None
+        #print(data['username'])
         user = User.query.filter_by(username=data['username']).first()
         return user
 
     def get_reset_password_token(self, expires_in=600):
         return jwt.encode(
             {'reset_password': self.id, 'exp': time() + expires_in},
-            app.config['SECRET_KEY'], algorithm='HS256').decode('utf-8')
+            app.config['SECRET_KEY'],
+            algorithm='HS256'
+        )
 
     @staticmethod
     def verify_reset_password_token(token):
@@ -115,7 +128,8 @@ class Room(db.Model):
     connected_users_bad = db.relationship(
         'User',
         secondary=connections,
-        backref=db.backref('connected_rooms', lazy='dynamic')
+        backref=db.backref('connected_rooms', lazy='dynamic',overlaps="connected_rooms_bad,connected_users"),
+        overlaps="connected_rooms_bad,connected_users"
     )
 
     def __repr__(self):
@@ -480,4 +494,4 @@ class TurnCard(db.Model):
     player_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True)
 
     def __repr__(self):
-        return "<Card {} in hand {} put by player {}>".format(self.card_id, self.hand_id, User.query.filter_by(id=self.player_id).first().username)
+        return "<Card {}{} in hand {} put by player {}>".format(self.card_id, self.card_suit, self.hand_id, User.query.filter_by(id=self.player_id).first().username)

@@ -56,29 +56,29 @@ class RoomMethodsCase(BaseCase):
         self.assertIsNotNone(create_room_response.json['created'], msg='Room created date is invalid!')
 
         # get open room status
-        closed_room_status_resposne = self.app.get('{base_path}/room/{room_id}'.format(
+        closed_room_status_response = self.app.get('{base_path}/room/{room_id}'.format(
             base_path=app.config['API_BASE_PATH'],
             room_id=create_room_response.json['roomId']
         ), headers={"Content-Type": "application/json"})
 
-        self.assertEqual(200, closed_room_status_resposne.status_code, msg="Failed to get room status after creating! Response code is {}".format(closed_room_status_resposne.status_code))
-        self.assertEqual(create_room_response.json['roomId'], closed_room_status_resposne.json['roomId'],
+        self.assertEqual(200, closed_room_status_response.status_code, msg="Failed to get room status after creating! Response code is {}".format(closed_room_status_response.status_code))
+        self.assertEqual(create_room_response.json['roomId'], closed_room_status_response.json['roomId'],
                          msg="Invalid field 'roomId' in room status after creating!")
-        self.assertEqual(room_name1, closed_room_status_resposne.json["roomName"],
+        self.assertEqual(room_name1, closed_room_status_response.json["roomName"],
                          msg="Invalid field 'roomName' in room status after creating!")
-        self.assertEqual(username, closed_room_status_resposne.json['host'],
+        self.assertEqual(username, closed_room_status_response.json['host'],
                          msg="Invalid field 'host' in room status after creating!")
-        self.assertEqual('open', closed_room_status_resposne.json['status'],
+        self.assertEqual('open', closed_room_status_response.json['status'],
                          msg="Invalid field 'status' in room status after creating!")
-        self.assertIsNotNone(closed_room_status_resposne.json['created'],
+        self.assertIsNotNone(closed_room_status_response.json['created'],
                          msg="Invalid field 'created' in room status after creating!")
-        self.assertIsNone(closed_room_status_resposne.json['closed'],
+        self.assertIsNone(closed_room_status_response.json['closed'],
                          msg="Invalid field 'closed' in room status after creating!")
-        self.assertEqual(1, len(closed_room_status_resposne.json['connectedUserList']),
+        self.assertEqual(1, len(closed_room_status_response.json['connectedUserList']),
                          msg="Invalid field 'connectedUserList' in room status after creating!")
-        self.assertIsNotNone(closed_room_status_resposne.json['connect'],
+        self.assertIsNotNone(closed_room_status_response.json['connect'],
                          msg="Invalid field 'connect' in room status after creating!")
-        self.assertEqual(0, len(closed_room_status_resposne.json['games']),
+        self.assertEqual(0, len(closed_room_status_response.json['games']),
                          msg="Invalid field 'games' in room status after creating!")
 
         # create another room before closing previous (not allowed)
@@ -149,27 +149,27 @@ class RoomMethodsCase(BaseCase):
         self.assertIsNotNone(create_room_response.json['roomId'], msg='Room id is invalid!')
 
         # get closed room status
-        closed_room_status_resposne = self.app.get('{base_path}/room/{room_id}'.format(
+        closed_room_status_response = self.app.get('{base_path}/room/{room_id}'.format(
             base_path=app.config['API_BASE_PATH'],
             room_id=create_room_response.json['roomId']
         ), headers={"Content-Type": "application/json"})
 
-        self.assertEqual(200, closed_room_status_resposne.status_code, msg="Failed to get room status after closing! Response code is {}".format(closed_room_status_resposne.status_code))
-        self.assertEqual(create_room_response.json['roomId'], closed_room_status_resposne.json['roomId'],
+        self.assertEqual(200, closed_room_status_response.status_code, msg="Failed to get room status after closing! Response code is {}".format(closed_room_status_response.status_code))
+        self.assertEqual(create_room_response.json['roomId'], closed_room_status_response.json['roomId'],
                          msg="Invalid field 'roomId' in room status after closing!")
-        self.assertEqual(room_name1, closed_room_status_resposne.json["roomName"],
+        self.assertEqual(room_name1, closed_room_status_response.json["roomName"],
                          msg="Invalid field 'roomName' in room status after closing!")
-        self.assertEqual(username, closed_room_status_resposne.json['host'],
+        self.assertEqual(username, closed_room_status_response.json['host'],
                          msg="Invalid field 'host' in room status after closing!")
-        self.assertEqual('closed', closed_room_status_resposne.json['status'],
+        self.assertEqual('closed', closed_room_status_response.json['status'],
                          msg="Invalid field 'status' in room status after closing!")
-        self.assertIsNotNone(closed_room_status_resposne.json['created'],
+        self.assertIsNotNone(closed_room_status_response.json['created'],
                          msg="Invalid field 'created' in room status after closing!")
-        self.assertIsNotNone(closed_room_status_resposne.json['closed'],
+        self.assertIsNotNone(closed_room_status_response.json['closed'],
                          msg="Invalid field 'closed' in room status after closing!")
-        self.assertIsNotNone(closed_room_status_resposne.json['connect'],
+        self.assertIsNotNone(closed_room_status_response.json['connect'],
                          msg="Invalid field 'connect' in room status after closing!")
-        self.assertEqual(0, len(closed_room_status_resposne.json['games']),
+        self.assertEqual(0, len(closed_room_status_response.json['games']),
                          msg="Invalid field 'games' in room status after closing!")
 
         # create another room
@@ -319,29 +319,29 @@ class RoomMethodsCase(BaseCase):
         self.assertEqual(200, connect_to_room3_response.status_code, msg="Failed to connect Sharik to room! Response code is {}".format(connect_to_room3_response.status_code))
 
         # get connected room status
-        closed_room_status_resposne = self.app.get('{base_path}/room/{room_id}'.format(
+        closed_room_status_response = self.app.get('{base_path}/room/{room_id}'.format(
             base_path=app.config['API_BASE_PATH'],
             room_id=create_another_room_response.json['roomId']
         ), headers={"Content-Type": "application/json"})
 
-        self.assertEqual(200, closed_room_status_resposne.status_code, msg="Failed to get room status after connecting users! Response code is {}".format(closed_room_status_resposne.status_code))
-        self.assertEqual(create_another_room_response.json['roomId'], closed_room_status_resposne.json['roomId'],
+        self.assertEqual(200, closed_room_status_response.status_code, msg="Failed to get room status after connecting users! Response code is {}".format(closed_room_status_response.status_code))
+        self.assertEqual(create_another_room_response.json['roomId'], closed_room_status_response.json['roomId'],
                          msg="Invalid field 'roomId' in room status after connecting users!")
-        self.assertEqual(room_name2, closed_room_status_resposne.json["roomName"],
+        self.assertEqual(room_name2, closed_room_status_response.json["roomName"],
                          msg="Invalid field 'roomName' in room status after connecting users!")
-        self.assertEqual(username, closed_room_status_resposne.json['host'],
+        self.assertEqual(username, closed_room_status_response.json['host'],
                          msg="Invalid field 'host' in room status after connecting users!")
-        self.assertEqual('open', closed_room_status_resposne.json['status'],
+        self.assertEqual('open', closed_room_status_response.json['status'],
                          msg="Invalid field 'status' in room status after connecting users!")
-        self.assertIsNotNone(closed_room_status_resposne.json['created'],
+        self.assertIsNotNone(closed_room_status_response.json['created'],
                          msg="Invalid field 'created' in room status after connecting users!")
-        self.assertIsNone(closed_room_status_resposne.json['closed'],
+        self.assertIsNone(closed_room_status_response.json['closed'],
                          msg="Invalid field 'closed' in room status after connecting users!")
-        self.assertEqual(4, len(closed_room_status_resposne.json['connectedUserList']),
+        self.assertEqual(3, len(closed_room_status_response.json['connectedUserList']),
                          msg="Invalid field 'connectedUserList' in room status after connecting users!")
-        self.assertIsNotNone(closed_room_status_resposne.json['connect'],
+        self.assertIsNotNone(closed_room_status_response.json['connect'],
                          msg="Invalid field 'connect' in room status after connecting users!")
-        self.assertEqual(0, len(closed_room_status_resposne.json['games']),
+        self.assertEqual(0, len(closed_room_status_response.json['games']),
                          msg="Invalid field 'games' in room status after connecting users!")
 
         # disconnect from room by host

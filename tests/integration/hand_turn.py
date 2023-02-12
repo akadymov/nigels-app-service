@@ -4,6 +4,8 @@ from tests.base_case import BaseCase
 import json
 
 
+print()
+
 class HandTurnMethodsCase(BaseCase):
 
     def test_hands(self):  # Given
@@ -21,6 +23,8 @@ class HandTurnMethodsCase(BaseCase):
             "username": username,
             "password": password
         })
+
+        print(app.config['API_BASE_PATH'])
 
         # register user
         create_host_response = self.app.post('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']),
@@ -478,33 +482,35 @@ class HandTurnMethodsCase(BaseCase):
             headers={"Content-Type": "application/json"}, data=second_betting_player_token_payload)
 
         if i > 0:  # means that player has at least one suited card
-            msg = "Failed to put second valid card ({}) having '{}' suit in turn! Response code is {}".format(
+            msg = "Failed to put second valid card ({}) when having '{}' suit in turn! Response code is {}".format(
                                  card_id, first_turn_suit, put_valid_second_card_response.status_code
                              )
         else:  # player does not have any suited card
-            msg = "Failed to put second valid card ({}) not having no card of turn suit ('{}')! Response code is {}".format(
+            msg = "Failed to put second valid card ({}) when having no card of turn suit ('{}')! Response code is {}".format(
                                  card_id, first_turn_suit, put_valid_second_card_response.status_code
                              )
         self.assertEqual(200, put_valid_second_card_response.status_code, msg=msg)
 
         # Put valid last card
         card_id = cards_on_last_player_hand[0]
+        no_valid_cards = True
         i = 0
         for card in cards_on_last_player_hand:
             if card[1:] == first_turn_suit and card[1:] != 'd':
                 card_id = card
                 i = i + 1
+                no_valid_cards = False
         put_valid_last_card_response = self.app.post(
             '{base_path}/game/{game_id}/hand/{hand_id}/turn/card/put/{card_id}'.format(
                 base_path=app.config['API_BASE_PATH'], game_id=game_id, hand_id=hand_id, card_id=card_id),
             headers={"Content-Type": "application/json"}, data=last_betting_player_token_payload)
 
-        if i > 0:  # means that player has at least one suited card
-            msg = "Failed to put second valid card ({}) having '{}' suit in turn! Response code is {}".format(
+        if not no_valid_cards:  # means that player has at least one suited card
+            msg = "Failed to put second valid card ({}) when having '{}' suit in turn! Response code is {}".format(
                                  card_id, first_turn_suit, put_valid_last_card_response.status_code
                              )
         else:  # player does not have any suited card
-            msg = "Failed to put second valid card ({}) not having no card of turn suit ('{}')! Response code is {}".format(
+            msg = "Failed to put second valid card ({}) when having no card of turn suit ('{}')! Response code is {}".format(
                                  card_id, first_turn_suit, put_valid_last_card_response.status_code
                              )
         self.assertEqual(200, put_valid_last_card_response.status_code, msg=msg)

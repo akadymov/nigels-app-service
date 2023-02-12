@@ -110,7 +110,7 @@ def post_token():
     else:
         token = user.generate_auth_token()
         return jsonify({
-            'token': token.decode('ascii'),
+            'token': token,
             'expiresIn': app.config['TOKEN_LIFETIME']
         }), 201
 
@@ -121,7 +121,10 @@ def edit_user(username):
 
     token = request.json.get('token')
     username = username.casefold()
+    # print('editing user ' + str(username))
     requesting_user = User.verify_api_auth_token(token)
+    if requesting_user is None:
+        abort(401, 'Invalid username or authorization token!')
 
     modified_user = User.query.filter_by(username=username).first()
     if modified_user is None:
