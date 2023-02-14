@@ -10,6 +10,28 @@ from datetime import datetime
 room = Blueprint('room', __name__)
 
 
+def generate_users_json(target_room, connected_users):
+    users_json = []
+    for u in connected_users:
+        is_ready = target_room.if_user_is_ready(u)
+        users_json.append({
+            'username': u.username,
+            'ready': is_ready,
+            'rating': 0
+        })
+    return users_json
+
+
+def generate_games_json(target_room):
+    games = target_room.games
+    games_json = []
+    for game in games:
+        games_json.append({
+            'id': game.id,
+            'status': 'open' if game.finished is None else 'finished'
+        })
+    return games_json
+
 @room.route('{base_path}/room/all'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
 @cross_origin()
 def get_list():
@@ -248,20 +270,8 @@ def status(room_id):
         abort(404, 'Room with specified id is not found!')
 
     connected_users = room.connected_users
-    users_json = []
-    for u in connected_users:
-        users_json.append({
-            'username': u.username,
-            'ready': False,
-            'rating': 0
-        })
-    games = room.games
-    games_json = []
-    for game in games:
-        games_json.append({
-            'id': game.id,
-            'status': 'open' if game.finished is None else 'finished'
-        })
+    users_json = generate_users_json(room,connected_users)
+    games_json = generate_games_json(room)
 
     return jsonify({
             'roomId': room.id,
@@ -272,5 +282,126 @@ def status(room_id):
             'closed': room.closed,
             'connectedUserList': users_json,
             'connect': url_for('room.connect', room_id=room.id),
+            'games': games_json
+    }), 200
+
+
+@room.route('{base_path}/room/<room_id>/ready'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
+def ready(room_id):
+    token = request.json.get('token')
+
+    requesting_user = User.verify_api_auth_token(token)
+
+    target_room = Room.query.filter_by(id=room_id).first()
+    if target_room is None:
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Room with id {room_id} is not found!'.format(room_id=room_id)
+                }
+            ]
+        }), 404
+    if target_room.closed is not None:
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Room "{room_name}" is closed!'.format(room_name=target_room.room_name)
+                }
+            ]
+        }), 400
+    if not target_room.is_connected(requesting_user):
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'User {username} is not connected to room "{room_name}"!'.format(
+                        username=requesting_user.username, room_name=target_room.room_name)
+                }
+            ]
+        }), 200
+    if target_room.host == requesting_user:
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Host is always ready!'
+                }
+            ]
+        }), 403
+
+    target_room.ready(requesting_user)
+
+    connected_users = target_room.connected_users
+    users_json = generate_users_json(target_room,connected_users)
+    games_json = generate_games_json(target_room)
+
+    return jsonify({
+            'roomId': target_room.id,
+            'roomName': target_room.room_name,
+            'host': target_room.host.username,
+            'status': 'open' if target_room.closed is None else 'closed',
+            'created': target_room.created,
+            'closed': target_room.closed,
+            'connectedUserList': users_json,
+            'connect': url_for('room.connect', room_id=target_room.id),
+            'games': games_json
+    }), 200
+
+@room.route('{base_path}/room/<room_id>/notready'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
+def not_ready(room_id):
+    token = request.json.get('token')
+
+    requesting_user = User.verify_api_auth_token(token)
+
+    target_room = Room.query.filter_by(id=room_id).first()
+    if target_room is None:
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Room with id {room_id} is not found!'.format(room_id=room_id)
+                }
+            ]
+        }), 404
+    if target_room.closed is not None:
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Room "{room_name}" is closed!'.format(room_name=target_room.room_name)
+                }
+            ]
+        }), 400
+    if not target_room.is_connected(requesting_user):
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'User {username} is not connected to room "{room_name}"!'.format(
+                        username=requesting_user.username, room_name=target_room.room_name)
+                }
+            ]
+        }), 200
+    if target_room.host == requesting_user:
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Host is always ready!'
+                }
+            ]
+        }), 403
+
+    target_room.not_ready(requesting_user)
+
+    connected_users = target_room.connected_users
+    users_json = generate_users_json(target_room,connected_users)
+    games_json = generate_games_json(target_room)
+
+    return jsonify({
+            'roomId': target_room.id,
+            'roomName': target_room.room_name,
+            'host': target_room.host.username,
+            'status': 'open' if target_room.closed is None else 'closed',
+            'created': target_room.created,
+            'closed': target_room.closed,
+            'connectedUserList': users_json,
+            'connect': url_for('room.connect', room_id=target_room.id),
             'games': games_json
     }), 200

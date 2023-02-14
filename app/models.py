@@ -6,13 +6,21 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from flask import url_for, abort
 from time import time
 import jwt
+from sqlalchemy import text
+
 
 
 connections = db.Table(
     'connections',
     db.Column('user_id', db.Integer, db.ForeignKey('user.id')),
-    db.Column('room_id', db.Integer, db.ForeignKey('room.id'))
+    db.Column('room_id', db.Integer, db.ForeignKey('room.id')),
+    db.Column('ready', db.Integer, default=0)
 )
+
+'''class connectionsClass(db.Model):
+    room_id = db.Column(db.integer, nullable=False),
+    user_id = db.Column(db.integer, nullable=False),
+    ready = db.Column(db.integer, nullable=False, default=0)'''
 
 
 players = db.Table(
@@ -146,6 +154,21 @@ class Room(db.Model):
     def is_connected(self, user):
         return self.connected_users.filter(
             connections.c.user_id == user.id).count() > 0
+
+    def ready(self, user):
+        sql = text("UPDATE connections SET ready = 1 WHERE room_id= " + str(self.id) + " AND user_id = " + str(user.id))
+        db.session.execute(sql)
+        db.session.commit()
+
+    def not_ready(self, user):
+        sql = text("UPDATE connections SET ready = 0 WHERE room_id= " + str(self.id) + " AND user_id = " + str(user.id))
+        db.session.execute(sql)
+        db.session.commit()
+
+    def if_user_is_ready(self, user):
+        sql = text("SELECT ready FROM connections WHERE room_id= " + str(self.id) + " AND user_id=" + str(user.id))
+        result = db.session.execute(sql).first()
+        return result[0]
 
 
 class Game(db.Model):
