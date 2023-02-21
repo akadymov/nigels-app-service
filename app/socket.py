@@ -50,3 +50,22 @@ def not_ready(username, room_id):
 def close_room(room_id):
     print('Host has closed Room #' + str(room_id))
     emit("exit_room", {'eventCategory': 'room', 'event': 'close', 'roomId': room_id}, broadcast=True)#, to=room_id)
+
+
+@socketio.on('start_game_in_room', namespace='/room')
+def start_game(game_id, room_id):
+    print('Game #' + str(game_id) + ' started in room #' + str(room_id))
+    emit("start_game", {"eventCategory": "game", "event": "start", "gameId": game_id, "roomId": room_id}, broadcast=True)#, to=room_id)
+
+
+@socketio.on('define_positions', namespace='/game')
+def define_positions(game_id):
+    print('Defined positions in game #' + str(game_id))
+    emit("refresh_game_table", {'eventCategory': 'game', 'event': 'define positions', 'gameId': game_id}, broadcast=True)#, to=room_id)
+
+
+@socketio.on('deal_cards', namespace='/game')
+def deal_cards(game_id):
+    print('Dealt cards in game #' + str(game_id))
+    emit("refresh_game_table", {'eventCategory': 'game', 'event': 'deal cards', 'gameId': game_id}, broadcast=True)#, to=room_id)
+
