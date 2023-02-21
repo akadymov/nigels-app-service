@@ -187,6 +187,11 @@ def status(game_id, hand_id):
     current_turn = hand.get_current_turn(closed=True)
     next_player = hand.next_card_putting_user()
 
+    cards_on_table = []
+    if current_turn:
+        for card in current_turn.stroke_cards():
+            cards_on_table.append(str(card.card_id) + card.card_suit)
+
     return jsonify({
             'handId': hand.id,
             'nextActingPlayer': next_player.username if next_player else None,
@@ -198,5 +203,6 @@ def status(game_id, hand_id):
             'startingPlayer': hand.starting_player,
             'handIsClosed': hand.is_closed,
             'players': players_enriched,
+            'cardsOnTable': cards_on_table,
             'currentTurnSerialNo': current_turn.serial_no if current_turn else None
     }), 200
