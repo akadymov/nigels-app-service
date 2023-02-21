@@ -367,7 +367,7 @@ class Hand(db.Model):
     def get_current_turn(self, closed=False):
         players_count = Player.query.filter_by(game_id=self.game_id).count()
         hand_turns = Turn.query.filter_by(hand_id=self.id).order_by(Turn.serial_no.desc()).all()
-        print(hand_turns)
+        #print(hand_turns)
         if not hand_turns:
             return None
         if closed:
