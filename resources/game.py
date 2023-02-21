@@ -72,7 +72,9 @@ def start():
         'host': g.room.host.username,
         'status': 'active' if g.finished is None else 'finished',
         'started': g.started,
-        'players': players_list
+        'players': players_list,
+        'startedHands': [],
+        'gameScores': []
     }), 200
 
 
@@ -168,8 +170,11 @@ def status(game_id):
 
     players = Player.query.filter_by(game_id=game_id).order_by(Player.position).all()
     players_enriched = []
+    positions_defined = True
     for player in players:
         user = User.query.filter_by(id=player.user_id).first()
+        if player.position is None:
+            positions_defined = False
         if user:
             players_enriched.append({
                 'username': user.username,
@@ -182,6 +187,8 @@ def status(game_id):
     return jsonify({
             'gameId': game.id,
             'roomId': game.room_id,
+            'positionsDefined': positions_defined,
+            'canDeal': positions_defined and current_hand is None,
             'currentHandId': current_hand.id if current_hand else None,
             'currentHandSerialNo': current_hand.serial_no if current_hand else None,
             'currentHandLocation': url_for('hand.status', hand_id=current_hand.id, game_id=game_id) if current_hand else None,
@@ -189,5 +196,7 @@ def status(game_id):
             'started': game.started,
             'status': 'open' if game.finished is None else 'finished',
             'finished': game.finished,
-            'players': players_enriched
+            'players': players_enriched,
+            'startedHands': [],
+            'gameScores': []
     }), 200
