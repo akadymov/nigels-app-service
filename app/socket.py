@@ -68,3 +68,4 @@ def define_positions(game_id):
 def deal_cards(game_id):
     print('Dealt cards in game #' + str(game_id))
     emit("refresh_game_table", {'eventCategory': 'game', 'event': 'deal cards', 'gameId': game_id}, broadcast=True)#, to=room_id)
+
