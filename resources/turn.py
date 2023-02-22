@@ -226,6 +226,10 @@ def put_card(game_id, hand_id, card_id):
         #print('turn suit is trump ? : ' + str(turn_suit == trump))
         #print('player has turn suit ? :' + str(h.user_has_suit(suit=turn_suit, user=requesting_user)))
 
+
+        for h in np.where(trump_hierarchy==highest_turn_card['id']):
+            print(h)
+        print(len(np.where(trump_hierarchy==highest_turn_card['suit'])))
         # putting J trump is allowed always
         if card_score == 'j' and trump == card_suit:
             status_code = 200
@@ -243,8 +247,11 @@ def put_card(game_id, hand_id, card_id):
             else:
                 error_msg = 'You should put card of following suits: {turn_suit} or {trump}'.format(turn_suit=turn_suit, trump=trump)
         # putting higher trump to turn of non trump suit with trumps is allowed always
-        elif np.where(trump_hierarchy==card_score)[0][0] > np.where(trump_hierarchy==highest_turn_card['suit'])[0][0]:
-            status_code = 200
+        elif len(np.where(trump_hierarchy==highest_turn_card['id']))>0:
+            if np.where(trump_hierarchy==card_score)[0][0] > np.where(trump_hierarchy==highest_turn_card['id'])[0][0]:
+                status_code = 200
+            else:
+                error_msg = 'Leaking lower trump is not allowed if player has cards of other suit'
         # leaking lower trump is not allowed if player has cards of other suit
         else:
             player_has_only_trumps = True
@@ -263,7 +270,6 @@ def put_card(game_id, hand_id, card_id):
                 error_msg = '{higher_trump_on_hand} is higher than {highest_turn_card}: you cannot leak trumps!'.format(higher_trump_on_hand = players_higher_trump, highest_turn_card = highest_turn_card)
 
         if status_code == 403:
-            print(error_msg)
             return jsonify({
                 'errors': [
                     {
