@@ -1,4 +1,4 @@
-from flask import jsonify, abort, Blueprint
+from flask import jsonify, Blueprint
 from flask_cors import cross_origin
 from app import app
 
@@ -13,7 +13,13 @@ def get_rules():
         content = f.read()
         f.close()
     if not content:
-        abort(404, 'Game rules not found!')
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Game rules not found!'
+                }
+            ]
+        }), 404
 
     return jsonify({'rules': content}), 200
 
@@ -25,6 +31,12 @@ def get_info():
         content = f.read()
         f.close()
     if not content:
-        abort(404, 'Game info not found!')
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Game info not found!'
+                }
+            ]
+        }), 404
 
     return jsonify({'info': content}), 200

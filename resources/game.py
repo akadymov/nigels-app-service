@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from flask import url_for, request, jsonify, abort, Blueprint
+from flask import url_for, request, jsonify, Blueprint
 from flask_cors import cross_origin
 from app import app, db
 from app.models import User, Room, Game, Player, Hand
@@ -17,7 +17,13 @@ def game_score(game_id):
 
     g = Game.query.filter_by(id=game_id).first()
     if not g:
-        abort(400, 'Game does not exist!')
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Game #{game_id} does not exist!'.format(game_id=game_id)
+                }
+            ]
+        }), 400
 
     game_scores = g.get_scores()
 
@@ -33,7 +39,13 @@ def start():
 
     token = request.json.get('token')
     if token is None:
-        abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token'))
+                }
+            ]
+        }), 401
     requesting_user = User.verify_api_auth_token(token)
 
     hosted_room = Room.query.filter_by(host=requesting_user, closed=None).first()
@@ -102,21 +114,39 @@ def finish():
 
     token = request.json.get('token')
     if token is None:
-        abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token'))
+                }
+            ]
+        }), 401
     requesting_user = User.verify_api_auth_token(token)
 
     hosted_room = Room.query.filter_by(host=requesting_user, closed=None).first()
     if not hosted_room:
-        abort(403, 'User {username} does not have open rooms! Create room by POST {create_room_url} before managing games.'.format(
-            username=requesting_user.username,
-            create_room_url=url_for('room.create')
-        ))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'User {username} does not have open rooms! Create room by POST {create_room_url} before managing games.'.format(
+                        username=requesting_user.username,
+                        create_room_url=url_for('room.create')
+                    )
+                }
+            ]
+        }), 403
     active_games = []
     for room_game in hosted_room.games:
         if room_game.finished is None:
             active_games.append(room_game)
     if len(active_games) != 1:
-        abort(403, 'Room {room_name} has {active_games} active game(s)!'.format(room_name=hosted_room.room_name, active_games=len(active_games)))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Room {room_name} has {active_games} active game(s)!'.format(room_name=hosted_room.room_name, active_games=len(active_games))
+                }
+            ]
+        }), 403
 
     g = active_games[0]
     g.finished = datetime.utcnow()
@@ -144,21 +174,45 @@ def positions(game_id):
 
     token = request.json.get('token')
     if token is None:
-        abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token'))
+                }
+            ]
+        }), 401
     requesting_user = User.verify_api_auth_token(token)
 
     game = Game.query.filter_by(id=game_id).first()
     if not game:
-        abort(400, 'Game is not started yet!')
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Game #{game_id} is not started yet!'.format(game_id=game_id)
+                }
+            ]
+        }), 400
 
     room = Room.query.filter_by(id=game.room_id).first()
     if room.host != requesting_user:
-        abort(403, 'Only host can shuffle positions!')
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Only host can shuffle positions!'
+                }
+            ]
+        }), 403
 
     players = Player.query.filter_by(game_id=game_id).all()
     for player in players:
         if player.position is not None:
-            abort(403, 'Positions of players are already defined in this game!')
+            return jsonify({
+                'errors': [
+                    {
+                        'message': 'Positions of players are already defined in game #{game_id}!'.format(game_id=game_id)
+                    }
+                ]
+            }), 403
 
     players = game.players.all()
     random.shuffle(players)
@@ -185,11 +239,23 @@ def status(game_id):
 
     game = Game.query.filter_by(id=game_id).first()
     if not game:
-        abort(404, 'Game with specified id is not found!')
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Game #{game_id} is not found!'.format(game_id=game_id)
+                }
+            ]
+        }), 404
 
     room = Room.query.filter_by(id=game.room_id).first()
     if not room:
-        abort(401, 'Game room is not found!')
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Room #{room_id} not found in game #{game_id}'.format(room_id=game.room_id, game_id=game_id)
+                }
+            ]
+        }), 401
 
     players = Player.query.filter_by(game_id=game_id).order_by(Player.position).all()
     players_enriched = []

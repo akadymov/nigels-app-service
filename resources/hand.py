@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from flask import url_for, request, jsonify, abort, Blueprint
+from flask import url_for, request, jsonify, Blueprint
 from flask_cors import cross_origin
 from app import app, db
 from app.models import User, Room, Game, Player, Hand, DealtCards, HandScore
@@ -17,20 +17,42 @@ def deal_cards(game_id):
 
     token = request.json.get('token')
     if token is None:
-        abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
+        return jsonify({
+            'errors':[
+                {'message': 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token'))}
+            ]
+        }), 401
     requesting_user = User.verify_api_auth_token(token)
 
     game = Game.query.filter_by(id=game_id).first()
     room = Room.query.filter_by(id=game.room_id).first()
     if room.host != requesting_user:
-        abort(403, 'Only host can deal cards!')
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Only host can deal cards!'
+                }
+            ]
+        }), 403
 
     if game.has_open_hands():
-        abort(403, 'Game {game_id} has open hand {hand_id}! You should finish it before dealing new hand!'.format(game_id=game_id, hand_id=game.last_open_hand().id))
+        return jsonify({
+            'errors':[
+                {
+                    'message': 'Game {game_id} has open hand {hand_id}! You should finish it before dealing new hand!'.format(game_id=game_id, hand_id=game.last_open_hand().id)
+                }
+            ]
+        }), 403
 
     # no more hands allowed
     if game.all_hands_played():
-        abort(403, 'All hands in game {game_id} are already dealt!'.format(game_id=game_id))
+        return jsonify({
+            'errors':[
+                {
+                    'message': 'All hands in game {game_id} are already dealt!'.format(game_id=game_id)
+                }
+            ]
+        }), 403
 
     # first hand configuration by default
     serial_no = 1
@@ -130,16 +152,32 @@ def get_hand_cards(game_id, hand_id):
 
     token = request.json.get('token')
     if token is None:
-        abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
+        return jsonify({
+            'errors':[
+                {'message': 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token'))}
+            ]
+        }), 401
     requesting_user = User.verify_api_auth_token(token)
 
     p = Player.query.filter_by(game_id=game_id, user_id=requesting_user.id).first()
     if p is None:
-        abort(403, 'User {username} is not participating in game {game_id}!'.format(username=requesting_user.username, game_id=game_id))
+        return jsonify({
+            'errors':[
+                {
+                    'message': 'User {username} is not participating in game {game_id}!'.format(username=requesting_user.username, game_id=game_id)
+                }
+            ]
+        }), 403
 
     h = Hand.query.filter_by(id=hand_id).first()
     if h is None or h.is_closed == 1:
-        abort(403, 'Hand {hand_id} is closed or does not exist!'.format(hand_id=hand_id))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Hand {hand_id} is closed or does not exist!'.format(hand_id=hand_id)
+                }
+            ]
+        }), 403
 
     if str(request.args.get('burned')).lower() == 'y':
         cards = h.get_user_initial_hand(requesting_user)
@@ -168,13 +206,25 @@ def status(game_id, hand_id):
 
     game = Game.query.filter_by(id=game_id).first()
     if not game:
-        abort(404, 'Game with specified id is not found!')
+        return jsonify({
+            'errors':[
+                {'message': 'Game #{game_id} is not found!'.format(game_id=game_id)}
+            ]
+        }), 404
 
     hand = Hand.query.filter_by(id=hand_id).first()
     if not hand:
-        abort(404, 'Hand with specified id is not found')
+        return jsonify({
+            'errors':[
+                {'message': 'Hand #{hand_id} is not found!'.format(hand_id=hand_id)}
+            ]
+        }), 404
     if int(hand.game_id) != int(game_id):
-        abort(404, 'Specified hand is not part of specified game!')
+        return jsonify({
+            'errors':[
+                {'message': 'Hand #{hand_id} is not part of game#{game_id}!'.format(hand_id=hand_id,game_id=game_id)}
+            ]
+        }), 404
 
     players = Player.query.filter_by(game_id=game_id).order_by(Player.position).all()
     players_enriched = []

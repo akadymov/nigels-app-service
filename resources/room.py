@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from flask import url_for, request, jsonify, abort, Blueprint
+from flask import url_for, request, jsonify, Blueprint
 from flask_cors import cross_origin
 from app import app, db
 from app.models import User, Room
@@ -60,7 +60,13 @@ def create():
 
     token = request.json.get('token')
     if token is None:
-        abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token'))
+                }
+            ]
+        }), 401
 
     requesting_user = User.verify_api_auth_token(token)
 
@@ -279,7 +285,13 @@ def disconnect(room_id):
 def status(room_id):
     room = Room.query.filter_by(id=room_id).first()
     if not room:
-        abort(404, 'Room with specified id is not found!')
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Room #{room_id} not found!'.format(room_id=room_id)
+                }
+            ]
+        }), 404
 
     connected_users = room.connected_users
     users_json = generate_users_json(room,connected_users)

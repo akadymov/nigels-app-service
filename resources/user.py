@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from flask import url_for, request, jsonify, abort, Blueprint, Response
+from flask import url_for, request, jsonify, Blueprint, Response
 from flask_cors import cross_origin
 from app import app, db
 from app.models import User
@@ -89,7 +89,13 @@ def get_user(username):
     username = username.casefold()
     user = User.query.filter_by(username=username).first()
     if user is None:
-        abort(404, 'User {username} not found!'.format(username=username))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'User {username} not found!'.format(username=username)
+                }
+            ]
+        }), 404
     return jsonify({
         'username': user.username,
         'email': user.email,
@@ -107,7 +113,6 @@ def post_token():
     password = request.json.get('password')
     user = User.query.filter_by(username=username).first()
     if user is None or not user.check_password(str(password)):
-        # abort(401, 'Invalid username or password')
         return jsonify({
             'errors': [
                 {'field': 'password', 'message': 'Invalid username or password!'}
@@ -130,24 +135,60 @@ def edit_user(username):
     # print('editing user ' + str(username))
     requesting_user = User.verify_api_auth_token(token)
     if requesting_user is None:
-        abort(401, 'Invalid username or authorization token!')
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Invalid username or authorization token!'
+                }
+            ]
+        }), 401
 
     modified_user = User.query.filter_by(username=username).first()
     if modified_user is None:
-        abort(404, 'User {username} not found!'.format(username=username))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'User {username} not found!'.format(username=username)
+                }
+            ]
+        }), 404
     if modified_user != requesting_user:
-        abort(401, 'You can update only your own profile ({username})!'.format(username=str(requesting_user.username)))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'You can update only your own profile ({username})!'.format(username=str(requesting_user.username))
+                }
+            ]
+        }), 401
 
     email = request.json.get('email') or modified_user.email
     about_me = request.json.get('aboutMe') or modified_user.about_me
     preferred_lang = request.json.get('preferredLang') or modified_user.preferred_language
     if not re.match(app.config['EMAIL_REGEXP'], email):
-        abort(400, 'Bad email!')
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Invalid email!'
+                }
+            ]
+        }), 400
     conflict_user = User.query.filter_by(email=email).first()
     if conflict_user is not None and conflict_user != modified_user:
-        abort(400, 'User with email {email} already exists!'.format(email=email))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'User with email {email} already exists!'.format(email=email)
+                }
+            ]
+        }), 400
     if preferred_lang not in ['ru', 'en']:
-        abort(400, 'Language {lang} is not supported!'.format(lang=preferred_lang))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Language {lang} is not supported!'.format(lang=preferred_lang)
+                }
+            ]
+        }), 400
 
     modified_user.email = email.casefold()
     modified_user.about_me = about_me
@@ -171,10 +212,22 @@ def send_password_recovery():
 
     email = request.json.get('email')
     if not email:
-        abort(400, 'Invalid email!')
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Invalid email!'
+                }
+            ]
+        }), 400
     user = User.query.filter_by(email=email).first()
     if not user:
-        abort(400, 'Invalid email!')
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Invalid email!'
+                }
+            ]
+        }), 400
     send_password_reset_email(user)
 
     return jsonify('Password recovery link is sent!'), 200
@@ -187,12 +240,30 @@ def reset_password():
     new_password = request.json.get('new_password')
     token = request.json.get('token')
     if not re.match(app.config['PASSWORD_REGEXP'], new_password):
-        abort(400, app.config['PASSWORD_REQUIREMENTS'])
+        return jsonify({
+            'errors': [
+                {
+                    'message': app.config['PASSWORD_REQUIREMENTS']
+                }
+            ]
+        }), 400
     user = User.verify_reset_password_token(token)
     if not user:
-        abort(403, 'Invalid temporary token!')
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Invalid temporary token!'
+                }
+            ]
+        }), 403
     if not new_password:
-        abort(400, 'Invalid new password!')
+        return jsonify({
+            'errors': [
+                {
+                    'message': app.config['PASSWORD_REQUIREMENTS']
+                }
+            ]
+        }), 400
 
     user.set_password(new_password)
     db.session.commit()
@@ -206,6 +277,12 @@ def reset_password_form(token):
 
     user = User.verify_reset_password_token(token)
     if not user:
-        return 'Token is invalid!'
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Token is invalid!'
+                }
+            ]
+        })
 
-    return 'Here come reset password form (under construction)!'
+    return 'Here comes reset password form (under construction)!'

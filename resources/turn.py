@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from flask import url_for, request, jsonify, abort, Blueprint
+from flask import url_for, request, jsonify, Blueprint
 from flask_cors import cross_origin
 from app import app, db
 from app.models import User, Game, Player, Hand, HandScore, Turn, DealtCards, TurnCard
@@ -20,35 +20,77 @@ def bet(game_id, hand_id):
 
     bet_size = request.json.get('betSize')
     if bet_size is None:
-        abort(400, 'No bet size in request!')
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'No bet size in request!'
+                }
+            ]
+        }), 400
 
     p = Player.query.filter_by(game_id=game_id, user_id=requesting_user.id).first()
     if p is None:
-        abort(403, 'User {username} is not participating in game {game_id}!'.format(username=requesting_user.username, game_id=game_id))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'User {username} is not participating in game {game_id}!'.format(username=requesting_user.username, game_id=game_id)
+                }
+            ]
+        }), 403
 
     game = Game.query.filter_by(id=game_id).first()
 
     h = Hand.query.filter_by(id=hand_id).first()
     if h is None or h.is_closed == 1:
-        abort(403, 'Hand {hand_id} is closed or does not exist!'.format(hand_id=hand_id))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Hand {hand_id} is closed or does not exist!'.format(hand_id=hand_id)
+                }
+            ]
+        }), 403
 
     requesting_player_bet = HandScore.query.filter_by(hand_id=hand_id, player_id=requesting_user.id).first()
     if requesting_player_bet:
-        abort(403, 'User {username} already has made a bet in hand {hand_id}!'.format(username=requesting_user.username, hand_id=hand_id))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'User {username} already has made a bet in hand {hand_id}!'.format(username=requesting_user.username, hand_id=hand_id)
+                }
+            ]
+        }), 403
 
     # check if it's your turn
     requesting_player_current_pos = h.get_position(requesting_user)
     if not h.is_registered(requesting_user):
-        abort(400, 'User {username} is not registered in hand {hand_id} of game {game_id}!'.format(username=requesting_user.username, hand_id=hand_id, game_id=game_id))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'User {username} is not registered in hand {hand_id} of game {game_id}!'.format(username=requesting_user.username, hand_id=hand_id, game_id=game_id)
+                }
+            ]
+        }), 400
     next_betting_user = h.next_betting_user()
     if next_betting_user != requesting_user:
-        abort(403, "It is {username}'s turn now!".format(username=next_betting_user.username))
+        return jsonify({
+            'errors': [
+                {
+                    'message': "It is {username}'s turn now!".format(username=next_betting_user.username)
+                }
+            ]
+        }), 403
 
     # "Someone should stay unhappy" (rule name)
     made_bets = h.get_sum_of_bets()
     is_last_bet = h.is_betting_last(requesting_user)
     if is_last_bet and bet_size + made_bets == h.cards_per_player:
-        abort(400, 'Someone should stay unhappy! Change your bet size since you are last betting player in hand.')
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Someone should stay unhappy! Change your bet size since you are last betting player in hand.'
+                }
+            ]
+        }), 400
 
     hs = HandScore(player_id=requesting_user.id, hand_id=hand_id, bet_size=bet_size)
     db.session.add(hs)
@@ -73,36 +115,84 @@ def put_card(game_id, hand_id, card_id):
 
     token = request.json.get('token')
     if token is None:
-        abort(401, 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token')))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Authentication token is absent! You should request token by POST {post_token_url}'.format(post_token_url=url_for('user.post_token'))
+                }
+            ]
+        }), 401
     requesting_user = User.verify_api_auth_token(token)
 
     p = Player.query.filter_by(game_id=game_id, user_id=requesting_user.id).first()
     if p is None:
-        abort(403, 'User {username} is not participating in game {game_id}!'.format(username=requesting_user.username, game_id=game_id))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'User {username} is not participating in game {game_id}!'.format(username=requesting_user.username, game_id=game_id)
+                }
+            ]
+        }), 403
 
     h = Hand.query.filter_by(id=hand_id).first()
     if h is None or h.is_closed == 1:
-        abort(403, 'Hand {hand_id} is closed or does not exist!'.format(hand_id=hand_id))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Hand {hand_id} is closed or does not exist!'.format(hand_id=hand_id)
+                }
+            ]
+        }), 403
 
     if not h.all_bets_made():
-        abort(403, 'Wait until all bets are made in hand {hand_id}'.format(hand_id=hand_id))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Wait until all bets are made in hand {hand_id}'.format(hand_id=hand_id)
+                }
+            ]
+        }), 403
 
     if h.all_turns_made():
-        abort(403, 'All turns are made in hand {hand_id} of game {game_id}!'.format(hand_id=hand_id, game_id=game_id))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'All turns are made in hand {hand_id} of game {game_id}!'.format(hand_id=hand_id, game_id=game_id)
+                }
+            ]
+        }), 403
 
     t = h.get_current_turn()
     if t and t.if_put_card(requesting_user):
-        abort(403, 'Player {username} has already put card in current turn of hand {hand_id}!'.format(username=requesting_user.username, hand_id=hand_id))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Player {username} has already put card in current turn of hand {hand_id}!'.format(username=requesting_user.username, hand_id=hand_id)
+                }
+            ]
+        }), 403
 
     curr_player = h.next_card_putting_user()
     if requesting_user != curr_player:
-        abort(403, "It is {username}'s turn now!".format(username=curr_player.username))
+        return jsonify({
+            'errors': [
+                {
+                    'message': "It is {username}'s turn now!".format(username=curr_player.username)
+                }
+            ]
+        }), 403
 
     card_id = card_id.casefold()
 
     player_current_hand = h.get_user_current_hand(requesting_user)
     if card_id not in player_current_hand:
-        abort(403, 'Player {username} does not have card {card_id} on his hand!'.format(username=requesting_user.username, card_id=card_id[:1], card_suit=card_id[1:]))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Player {username} does not have card {card_id} on his hand!'.format(username=requesting_user.username, card_id=card_id[:1], card_suit=card_id[1:])
+                }
+            ]
+        }), 403
 
     last_turn = h.get_last_turn()
     serial_no = 1
@@ -174,7 +264,13 @@ def put_card(game_id, hand_id, card_id):
 
         if status_code == 403:
             print(error_msg)
-            abort(status_code, error_msg)
+            return jsonify({
+                'errors': [
+                    {
+                        'message': error_msg
+                    }
+                ]
+            }), status_code
 
     tc = TurnCard(player_id=requesting_user.id, card_id=card_id[:1], card_suit=card_id[1:], turn_id=t.id,
                   hand_id=hand_id)
