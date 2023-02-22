@@ -152,13 +152,19 @@ def get_hand_cards(game_id, hand_id):
         'cardsPerPlayer': h.cards_per_player,
         'trump': h.trump,
         'player': requesting_user.username,
-        'cardsInHand': cards
+        'cardsInHand': cards,
+        'myPosition': h.get_position(requesting_user)
     }), 200
 
 
-@hand.route('{base_path}/game/<game_id>/hand/<hand_id>'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+@hand.route('{base_path}/game/<game_id>/hand/<hand_id>'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
 @cross_origin()
 def status(game_id, hand_id):
+    token = request.json.get('token')
+    my_position = 0
+    requesting_user = None
+    if token:
+        requesting_user = User.verify_api_auth_token(token)
 
     game = Game.query.filter_by(id=game_id).first()
     if not game:
@@ -174,6 +180,8 @@ def status(game_id, hand_id):
     players_enriched = []
     for player in players:
         user = User.query.filter_by(id=player.user_id).first()
+        if user == requesting_user:
+            my_position = hand.get_position(user)
         if user:
             user_scores = HandScore.query.filter_by(player_id=user.id).first()
             players_enriched.append({
@@ -203,6 +211,7 @@ def status(game_id, hand_id):
             'startingPlayer': hand.starting_player,
             'handIsClosed': hand.is_closed,
             'players': players_enriched,
+            'myPosition': my_position,
             'cardsOnTable': cards_on_table,
             'currentTurnSerialNo': current_turn.serial_no if current_turn else None
     }), 200
