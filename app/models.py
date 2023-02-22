@@ -128,7 +128,7 @@ def load_user(id):
 
 class Room(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    room_name = db.Column(db.String(64), index=True, unique=True)
+    room_name = db.Column(db.String(64), index=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), index=True)
     created = db.Column(db.DateTime, default=datetime.utcnow)
     games = db.relationship('Game', backref='room', lazy='dynamic')

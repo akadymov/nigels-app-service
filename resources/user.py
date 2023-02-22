@@ -106,7 +106,12 @@ def post_token():
     password = request.json.get('password')
     user = User.query.filter_by(username=username).first()
     if user is None or not user.check_password(str(password)):
-        abort(401, 'Invalid username or password')
+        # abort(401, 'Invalid username or password')
+        return jsonify({
+            'errors': [
+                {'field': 'password', 'message': 'Invalid username or password!'}
+            ]
+        }), 401
     else:
         token = user.generate_auth_token()
         return jsonify({

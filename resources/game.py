@@ -38,21 +38,39 @@ def start():
 
     hosted_room = Room.query.filter_by(host=requesting_user, closed=None).first()
     if not hosted_room:
-        abort(403, 'User {username} does not have open rooms! Create room by POST {create_room_url} before managing games.'.format(
-            username=requesting_user.username,
-            create_room_url=url_for('room.create')
-        ))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'User {username} does not have open rooms! Create room by POST {create_room_url} before managing games.'.format(
+                        username=requesting_user.username,
+                        create_room_url=url_for('room.create')
+                    )
+                }
+            ]
+        }), 403
     if not app.config['MIN_PLAYER_TO_START'] <= hosted_room.connected_users.count() <= app.config['MAX_PLAYER_TO_START']:
-        abort(403, 'Incorrect number of players to start ({players_count} connected to room {room_name}!'.format(
-            players_count=hosted_room.connected_users.count(),
-            room_name=hosted_room.room_name
-        ))
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Incorrect number of players to start ({players_count} currently connected to room "{room_name}")!'.format(
+                        players_count=hosted_room.connected_users.count(),
+                        room_name=hosted_room.room_name
+                    )
+                }
+            ]
+        }), 403
     for room_game in hosted_room.games:
         if room_game.finished is None:
-            abort(403, 'Game {game_id} is already started at {game_start} and is not finished yet! You cannot run more than one game in room at one moment!'.format(
-                game_id=room_game.id,
-                game_start=room_game.started
-            ))
+            return jsonify({
+                'errors': [
+                    {
+                        'message': 'Game {game_id} is already started at {game_start} and is not finished yet! You cannot run more than one game in room at one moment!'.format(
+                            game_id=room_game.id,
+                            game_start=room_game.started
+                        )
+                    }
+                ]
+            }), 403
 
     g = Game(room=hosted_room)
     db.session.add(g)
@@ -164,9 +182,14 @@ def positions(game_id):
 @game.route('{base_path}/game/<game_id>'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
 @cross_origin()
 def status(game_id):
+
     game = Game.query.filter_by(id=game_id).first()
     if not game:
         abort(404, 'Game with specified id is not found!')
+
+    room = Room.query.filter_by(id=game.room_id).first()
+    if not room:
+        abort(401, 'Game room is not found!')
 
     players = Player.query.filter_by(game_id=game_id).order_by(Player.position).all()
     players_enriched = []
@@ -197,6 +220,7 @@ def status(game_id):
             'status': 'open' if game.finished is None else 'finished',
             'finished': game.finished,
             'players': players_enriched,
+            'host': room.host.username,
             'startedHands': [],
             'gameScores': []
     }), 200

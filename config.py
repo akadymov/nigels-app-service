@@ -19,7 +19,7 @@ class Config(object):
         }
     }
     USERNAME_REGEXP = os.environ.get('USERNAME_REGEXP') or "^[a-zA-Z][a-zA-Z0-9-_\.]{1,35}$"
-    PASSWORD_REGEXP = os.environ.get('PASSWORD_REGEXP') or "(?=^.{8,}$)(?=.*[a-z])(?=.*[A-Z])(?!.*\s).*$"
+    PASSWORD_REGEXP = os.environ.get('PASSWORD_REGEXP') or "(?=.*[a-z])(?=.*[A-Z]).{6,32}$"
     EMAIL_REGEXP = os.environ.get('EMAIL_REGEXP') or "(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
     ALLOWED_LANGS = os.environ.get('ALLOWED_LANGS') or ['ru', 'en']
     TOKEN_LIFETIME = os.environ.get('TOKEN_LIFETIME') or 86400  # 24 hours
@@ -34,4 +34,4 @@ class Config(object):
     MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL') or False
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME') or 'nigelsappservice@gmail.com'
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
-    ADMINS = ['nigelsappservice@gmail.com', 'a-kadymov@yandex.ru']
+    ADMINS = ['nigelsappservice@gmail.com', 'akhmed.kadymov@gmail.com']

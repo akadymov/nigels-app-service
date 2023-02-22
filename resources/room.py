@@ -164,9 +164,19 @@ def connect(room_id):
     token = request.json.get('token')
 
     requesting_user = User.verify_api_auth_token(token)
-
+    target_room = Room.query.filter_by(id=room_id).first()
     connected_room = requesting_user.connected_rooms
+
     if connected_room.count() > 0:
+        if target_room.is_connected(requesting_user):
+            return jsonify({
+                'warning': [
+                    {
+                        'message': 'User {username} is already connected to room "{room_name}"! You will be redirected.'.format(
+                            username=requesting_user.username, room_name=target_room.room_name)
+                    }
+                ]
+            }), 201
         return jsonify({
             'errors': [
                 {
@@ -175,7 +185,6 @@ def connect(room_id):
             ]
         }), 403
 
-    target_room = Room.query.filter_by(id=room_id).first()
     if target_room is None:
         return jsonify({
             'errors': [
@@ -189,14 +198,6 @@ def connect(room_id):
             'errors': [
                 {
                     'message': 'Room "{room_name}" is closed!'.format(room_name=target_room.room_name)
-                }
-            ]
-        }), 400
-    if target_room.is_connected(requesting_user):
-        return jsonify({
-            'errors': [
-                {
-                    'message': 'User {username} is already connected to room "{room_name}"!'.format(username=requesting_user.username, room_name=target_room.room_name)
                 }
             ]
         }), 400
@@ -220,8 +221,11 @@ def connect(room_id):
 def disconnect(room_id):
 
     token = request.json.get('token')
+    username = request.json.get('username')
 
     requesting_user = User.verify_api_auth_token(token)
+
+    disconnecting_user = User.query.filter_by(username=username).first()
 
     target_room = Room.query.filter_by(id=room_id).first()
     if target_room is None:
@@ -240,24 +244,32 @@ def disconnect(room_id):
                 }
             ]
         }), 400
-    if not target_room.is_connected(requesting_user):
+    if requesting_user != target_room.host and disconnecting_user != requesting_user:
         return jsonify({
             'errors': [
                 {
-                    'message': 'User {username} is not connected to room "{room_name}"!'.format(username=requesting_user.username, room_name=target_room.room_name)
+                    'message': 'Only host can disconnect other players!'
+                }
+            ]
+        })
+    if not target_room.is_connected(disconnecting_user):
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'User {username} is not connected to room "{room_name}"!'.format(username=disconnecting_user.username, room_name=target_room.room_name)
                 }
             ]
         }), 200
-    if target_room.host == requesting_user:
+    if target_room.host == disconnecting_user:
         return jsonify({
             'errors': [
                 {
-                    'message': 'Host cannot disconnect the room!'
+                    'message': 'Host cannot disconnect the room! You can close room if you wish.'
                 }
             ]
         }), 403
 
-    target_room.disconnect(requesting_user)
+    target_room.disconnect(disconnecting_user)
 
     return jsonify(200)
 
@@ -290,8 +302,11 @@ def status(room_id):
 @cross_origin()
 def ready(room_id):
     token = request.json.get('token')
+    username = request.json.get('username')
 
     requesting_user = User.verify_api_auth_token(token)
+
+    modified_user = User.query.filter_by(username=username).first()
 
     target_room = Room.query.filter_by(id=room_id).first()
     if target_room is None:
@@ -310,16 +325,7 @@ def ready(room_id):
                 }
             ]
         }), 400
-    if not target_room.is_connected(requesting_user):
-        return jsonify({
-            'errors': [
-                {
-                    'message': 'User {username} is not connected to room "{room_name}"!'.format(
-                        username=requesting_user.username, room_name=target_room.room_name)
-                }
-            ]
-        }), 200
-    if target_room.host == requesting_user:
+    if target_room.host == modified_user:
         return jsonify({
             'errors': [
                 {
@@ -327,8 +333,25 @@ def ready(room_id):
                 }
             ]
         }), 403
+    if modified_user != requesting_user and requesting_user != target_room.host:
+        return jsonify({
+            'errors': [
+                {
+                    "message": "Only host can change other players' status!"
+                }
+            ]
+        }), 403
+    if not target_room.is_connected(modified_user):
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'User {username} is not connected to room "{room_name}"!'.format(
+                        username=modified_user.username, room_name=target_room.room_name)
+                }
+            ]
+        }), 200
 
-    target_room.ready(requesting_user)
+    target_room.ready(modified_user)
 
     connected_users = target_room.connected_users
     users_json = generate_users_json(target_room,connected_users)
@@ -350,8 +373,11 @@ def ready(room_id):
 @cross_origin()
 def not_ready(room_id):
     token = request.json.get('token')
+    username = request.json.get('username')
 
     requesting_user = User.verify_api_auth_token(token)
+
+    modified_user = User.query.filter_by(username=username).first()
 
     target_room = Room.query.filter_by(id=room_id).first()
     if target_room is None:
@@ -370,16 +396,24 @@ def not_ready(room_id):
                 }
             ]
         }), 400
-    if not target_room.is_connected(requesting_user):
+    if not target_room.is_connected(modified_user):
         return jsonify({
             'errors': [
                 {
                     'message': 'User {username} is not connected to room "{room_name}"!'.format(
-                        username=requesting_user.username, room_name=target_room.room_name)
+                        username=modified_user.username, room_name=target_room.room_name)
                 }
             ]
         }), 200
-    if target_room.host == requesting_user:
+    if modified_user != requesting_user and requesting_user != target_room.host:
+        return jsonify({
+            'errors': [
+                {
+                    "message": "Only host can change other players' status!"
+                }
+            ]
+        }), 403
+    if target_room.host == modified_user:
         return jsonify({
             'errors': [
                 {
@@ -388,7 +422,7 @@ def not_ready(room_id):
             ]
         }), 403
 
-    target_room.not_ready(requesting_user)
+    target_room.not_ready(modified_user)
 
     connected_users = target_room.connected_users
     users_json = generate_users_json(target_room,connected_users)
@@ -405,3 +439,4 @@ def not_ready(room_id):
             'connect': url_for('room.connect', room_id=target_room.id),
             'games': games_json
     }), 200
+
