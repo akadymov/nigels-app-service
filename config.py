@@ -20,6 +20,7 @@ class Config(object):
     }
     USERNAME_REGEXP = os.environ.get('USERNAME_REGEXP') or "^[a-zA-Z][a-zA-Z0-9-_\.]{1,35}$"
     PASSWORD_REGEXP = os.environ.get('PASSWORD_REGEXP') or "(?=.*[a-z])(?=.*[A-Z]).{6,32}$"
+    PASSWORD_REQUIREMENTS = os.environ.get('PASSWORD_REQUIREMENTS') or '6 to 32 characters, uppercase and lowercase'
     EMAIL_REGEXP = os.environ.get('EMAIL_REGEXP') or "(^[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+$)"
     ALLOWED_LANGS = os.environ.get('ALLOWED_LANGS') or ['ru', 'en']
     TOKEN_LIFETIME = os.environ.get('TOKEN_LIFETIME') or 86400  # 24 hours

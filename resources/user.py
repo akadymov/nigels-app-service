@@ -17,6 +17,7 @@ def get_user_regexps():
     return jsonify({
         'email_regexp': app.config['EMAIL_REGEXP'],
         'password_regexp': app.config['PASSWORD_REGEXP'],
+        'password_requirements': app.config['PASSWORD_REQUIREMENTS'],
         'allowed_lang_codes': app.config['ALLOWED_LANGS']
     }), 200
 
@@ -45,7 +46,7 @@ def create_user():
     if not re.match(app.config['EMAIL_REGEXP'], email):
         errors.append({'field': 'email', 'message': 'Bad email!'})
     if not re.match(app.config['PASSWORD_REGEXP'], password):
-        errors.append({'field': 'password', 'message': 'Password does not satisfy security requirements!'})
+        errors.append({'field': 'password', 'message': app.config['PASSWORD_REQUIREMENTS']})
     if User.query.filter_by(username=username.casefold()).count() > 0:
         errors.append(
             {'field': 'username', 'message': 'User with username {username} already exists!'.format(username=username)})
@@ -186,7 +187,7 @@ def reset_password():
     new_password = request.json.get('new_password')
     token = request.json.get('token')
     if not re.match(app.config['PASSWORD_REGEXP'], new_password):
-        abort(400, 'Password does not satisfy security requirements!')
+        abort(400, app.config['PASSWORD_REQUIREMENTS'])
     user = User.verify_reset_password_token(token)
     if not user:
         abort(403, 'Invalid temporary token!')
