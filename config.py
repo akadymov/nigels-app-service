@@ -34,5 +34,5 @@ class Config(object):
     MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS') or True
     MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL') or False
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME') or 'nigelsappservice@gmail.com'
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD')
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD') or 'ler123LM'
     ADMINS = ['nigelsappservice@gmail.com', 'akhmed.kadymov@gmail.com']

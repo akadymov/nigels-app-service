@@ -204,6 +204,7 @@ def status(game_id, hand_id):
 
     return jsonify({
             'handId': hand.id,
+            'betsAreMade': hand.all_bets_made(),
             'nextActingPlayer': next_player.username if next_player else None,
             'gameId': game.id,
             'roomId': game.room_id,
