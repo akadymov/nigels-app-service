@@ -193,7 +193,9 @@ def status(game_id, hand_id):
             })
 
     current_turn = hand.get_current_turn(closed=True)
-    next_player = hand.next_card_putting_user()
+    next_player = hand.next_betting_user()
+    if hand.all_bets_made():
+        next_player = hand.next_card_putting_user()
 
     cards_on_table = []
     if current_turn:
