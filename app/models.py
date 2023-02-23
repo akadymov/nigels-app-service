@@ -332,6 +332,7 @@ class Hand(db.Model):
                 return User.query.filter_by(id=player_id).first()
         last_turn = self.get_last_turn()
         if last_turn:
+            print(last_turn.took_user_id)
             return User.query.filter_by(id=last_turn.took_user_id).first()
         return self.get_starter()
 
@@ -432,6 +433,7 @@ class Hand(db.Model):
                 if not player_card:
                     return User.query.filter_by(id=player_id).first()
         elif last_turn:
+            print(last_turn.took_user_id)
             return User.query.filter_by(id=last_turn.took_user_id).first()
         return self.get_starter()
 

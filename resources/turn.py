@@ -206,12 +206,6 @@ def put_card(game_id, hand_id, card_id):
         )
         db.session.add(t)
 
-
-    #print('   ')
-    #print('   ')
-    #print('put card is ' + str(card_id))
-    #print('stroke cards: ' + str(t.stroke_cards()))
-    #print('player hand: ' + str(player_current_hand))
     if len(t.stroke_cards()) > 0 and len(player_current_hand) > 1:
 
         turn_suit = t.get_starting_suit().casefold()
@@ -222,52 +216,45 @@ def put_card(game_id, hand_id, card_id):
         trump_hierarchy = np.array(['2', '3', '4', '5', '6', '7', '8', 't', 'q', 'k', 'a', '9', 'j'])
         status_code = 403
         error_msg = '-'
-        #print('trump is ' + str(trump))
-        #print('turn suit is trump ? : ' + str(turn_suit == trump))
-        #print('player has turn suit ? :' + str(h.user_has_suit(suit=turn_suit, user=requesting_user)))
+        player_has_turn_suit = False
+        player_has_only_trump = True
+        players_higher_trump = False
+        for card_on_hand in player_current_hand:
+            if card_on_hand[-1:] == turn_suit:
+                if card_on_hand[-1:] != trump and card_on_hand[1:] != 'j':
+                    player_has_turn_suit = True
+            if card_on_hand[-1:] != trump:
+                player_has_only_trump = False
+            if card_on_hand != 'j' + str(trump) and np.where(trump_hierarchy == card_on_hand[:1])[0][0] > np.where(trump_hierarchy == highest_turn_card['id'])[0][0]:
+                players_higher_trump = True
 
 
-        for h in np.where(trump_hierarchy==highest_turn_card['id']):
-            print(h)
-        print(len(np.where(trump_hierarchy==highest_turn_card['suit'])))
-        # putting J trump is allowed always
-        if card_score == 'j' and trump == card_suit:
-            status_code = 200
-        # putting card of current suit is allowed always
-        elif turn_suit == card_suit:
-            status_code = 200
-        elif turn_suit != trump:
-            # putting first trump is allowed always
-            if card_suit == trump:
-                status_code = 200
-            # putting card of non trump suit not matching with turn suit is allowed if player has no cards of turn suit
-            elif not h.user_has_suit(suit=turn_suit, user=requesting_user):
-                status_code = 200
-            # putting card of non trump suit not matching with turn suit is not allowed if player has cards of turn suit
+        if turn_suit == card_suit:
+            status_code = 200                       # putting card of current suit is allowed always
+
+        elif card_suit == trump:
+            if card_score == 'j':
+                status_code = 200                   # putting J trump is allowed always
+
+            elif highest_turn_card['suit'] != trump:
+                status_code = 200                   # putting first trump is allowed always
+
             else:
-                error_msg = 'You should put card of following suits: {turn_suit} or {trump}'.format(turn_suit=turn_suit, trump=trump)
-        # putting higher trump to turn of non trump suit with trumps is allowed always
-        elif len(np.where(trump_hierarchy==highest_turn_card['id']))>0:
-            if np.where(trump_hierarchy==card_score)[0][0] > np.where(trump_hierarchy==highest_turn_card['id'])[0][0]:
-                status_code = 200
-            else:
-                error_msg = 'Leaking lower trump is not allowed if player has cards of other suit'
-        # leaking lower trump is not allowed if player has cards of other suit
+                if np.where(trump_hierarchy==card_score)[0][0] > np.where(trump_hierarchy==highest_turn_card['id'])[0][0]:
+                    status_code = 200               # putting higher trump is allowed always
+                elif player_has_only_trump and not players_higher_trump:
+                    status_code = 200               # leaking lower trump is allowed if you do not have higher trump
+                else:
+                    error_msg = \
+                        '{higher_trump_on_hand} is higher than {highest_turn_card}: you cannot leak trumps!'.format(
+                            higher_trump_on_hand = players_higher_trump,
+                            highest_turn_card = highest_turn_card
+                        )                           # leaking trumps is not allowed
+        elif player_has_turn_suit:
+            error_msg = 'You can put only {turn_suit} and {trump}'.format(turn_suit=turn_suit, trump=trump) # cannot put another suit and non trump if you have turn suit
+
         else:
-            player_has_only_trumps = True
-            players_higher_trump = None
-            for card in player_current_hand:
-                if card[-1:] != trump:
-                    player_has_only_trumps = False
-                elif card != 'j' + str(trump) and np.where(trump_hierarchy == card[:1])[0][0] > np.where(trump_hierarchy == highest_turn_card['id'])[0][0]:
-                    player_has_no_higher_trump = False
-                    players_higher_trump = card
-            # leaking lower trump is allowed if player has only trumps and every one of them (except Jack) are lower than higher turn trump
-            if player_has_only_trumps and players_higher_trump is None:
-                status_code = 200
-            # leaking lower trump is not allowed if player has only trumps and at least one of them is higher than turn trump
-            else:
-                error_msg = '{higher_trump_on_hand} is higher than {highest_turn_card}: you cannot leak trumps!'.format(higher_trump_on_hand = players_higher_trump, highest_turn_card = highest_turn_card)
+            status_code = 200
 
         if status_code == 403:
             return jsonify({
@@ -297,8 +284,9 @@ def put_card(game_id, hand_id, card_id):
 
     game_scores = None
     turn_cards_count = TurnCard.query.filter_by(turn_id=t.id).count()
-    if turn_cards_count == players_count and h.all_turns_made():
+    if turn_cards_count == players_count and Hand.query.filter_by(id=hand_id).first().all_turns_made():
         h.is_closed = 1
+        db.session.commit()
         h.calculate_current_score()
         if g.all_hands_played():
             g.finished = datetime.utcnow()

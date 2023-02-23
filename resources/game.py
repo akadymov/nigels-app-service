@@ -273,11 +273,28 @@ def status(game_id):
     current_hand = game.last_open_hand()
     played_hands_count = Hand.query.filter_by(game_id=game_id, is_closed=1).count()
 
+    action_msg = 'Game #{game_id} started by {hostname}! Host is to shuffle positions.'.format(game_id=game_id, hostname=room.host.username)
+    can_deal = False
+    if game.finished:
+        action_msg = 'This game is closed!'
+    elif positions_defined:
+        if current_hand is None:
+            can_deal = True
+            action_msg = 'Dealing cards...'
+        elif not current_hand.all_bets_made():
+            action_msg = '{username} is making bet...'.format(username=current_hand.next_betting_user().username)
+        elif not current_hand.all_turns_made():
+            action_msg = "{username}'s turn...".format(username=current_hand.next_card_putting_user().username)
+        else:
+            action_msg = 'Hand is finished'
+
+
+
     return jsonify({
             'gameId': game.id,
             'roomId': game.room_id,
             'positionsDefined': positions_defined,
-            'canDeal': positions_defined and current_hand is None,
+            'canDeal': can_deal,
             'currentHandId': current_hand.id if current_hand else None,
             'currentHandSerialNo': current_hand.serial_no if current_hand else None,
             'currentHandLocation': url_for('hand.status', hand_id=current_hand.id, game_id=game_id) if current_hand else None,
@@ -288,5 +305,6 @@ def status(game_id):
             'players': players_enriched,
             'host': room.host.username,
             'startedHands': [],
-            'gameScores': []
+            'gameScores': [],
+            'actionMessage': action_msg
     }), 200
