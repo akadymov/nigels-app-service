@@ -115,7 +115,8 @@ def post_token():
     if user is None or not user.check_password(str(password)):
         return jsonify({
             'errors': [
-                {'field': 'password', 'message': 'Invalid username or password!'}
+                {'field': 'password', 'message': 'Invalid username or password!'},
+                {'field': 'username', 'message': '   '}
             ]
         }), 401
     else:
