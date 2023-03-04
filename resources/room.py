@@ -13,7 +13,10 @@ room = Blueprint('room', __name__)
 def generate_users_json(target_room, connected_users):
     users_json = []
     for u in connected_users:
-        is_ready = target_room.if_user_is_ready(u)
+        if target_room.host.username == u.username:
+            is_ready = 1
+        else:
+            is_ready = target_room.if_user_is_ready(u)
         users_json.append({
             'username': u.username,
             'ready': is_ready,
