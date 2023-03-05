@@ -233,7 +233,7 @@ def status(game_id, hand_id):
         if user == requesting_user:
             my_position = hand.get_position(user)
         if user:
-            user_scores = HandScore.query.filter_by(player_id=user.id).first()
+            user_scores = HandScore.query.filter_by(player_id=user.id, hand_id=hand_id).first()
             players_enriched.append({
                 'username': user.username,
                 'position': hand.get_position(user),

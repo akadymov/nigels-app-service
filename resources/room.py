@@ -222,7 +222,16 @@ def connect(room_id):
     target_room.connect(requesting_user)
     db.session.commit()
 
-    return jsonify(200)
+    return jsonify({
+        'roomId': target_room.id,
+        'roomName': target_room.room_name,
+        'host': target_room.host.username,
+        'created': target_room.created,
+        'closed': target_room.closed,
+        'connectedUsers': target_room.connected_users.count(),
+        'status': 'open' if target_room.closed is None else 'closed',
+        'connect': url_for('room.connect', room_id=target_room.id)
+    }), 201
 
 
 @room.route('{base_path}/room/<room_id>/disconnect'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
@@ -280,7 +289,16 @@ def disconnect(room_id):
 
     target_room.disconnect(disconnecting_user)
 
-    return jsonify(200)
+    return jsonify({
+        'roomId': target_room.id,
+        'roomName': target_room.room_name,
+        'host': target_room.host.username,
+        'created': target_room.created,
+        'closed': target_room.closed,
+        'connectedUsers': target_room.connected_users.count(),
+        'status': 'open' if target_room.closed is None else 'closed',
+        'connect': url_for('room.connect', room_id=target_room.id)
+    }), 201
 
 
 @room.route('{base_path}/room/<room_id>'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
