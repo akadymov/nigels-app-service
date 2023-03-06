@@ -210,16 +210,68 @@ def start_game(actor, game_id, room_id):
 @socketio.on('define_positions', namespace='/game')
 def define_positions(game_id, players_array):
     print('Defined positions in game #' + str(game_id))
-    emit("refresh_game_table", {'eventCategory': 'game', 'event': 'define positions', 'gameId': game_id, 'players': players_array}, json=True, broadcast=True)#, to=room_id)
+    emit(
+        "refresh_game_table",
+        {
+            'eventCategory': 'game',
+            'event': 'define positions',
+            'gameId': game_id,
+            'players': players_array
+        },
+        json=True,
+        # to=room_id,
+        broadcast=True
+    )
 
 
 @socketio.on('deal_cards', namespace='/game')
 def deal_cards(game_id):
     print('Dealt cards in game #' + str(game_id))
-    emit("refresh_game_table", {'eventCategory': 'game', 'event': 'deal cards', 'gameId': game_id}, json=True, broadcast=True)#, to=room_id)
+    emit(
+        "refresh_game_table",
+        {
+            'eventCategory': 'game',
+            'event': 'deal cards',
+            'gameId': game_id
+        },
+        json=True,
+        # to=room_id,
+        broadcast=True
+    )
+
+
+@socketio.on('make_bet', namespace='/game')
+def make_bet(game_id, hand_id, actor, bet_size, next_betting_player):
+    print('Player "' + str(actor) + '" made bet of size: ' + str(bet_size) + ' in hand #' + str(hand_id) + ' of game #' + str(game_id))
+    emit(
+        "refresh_game_table",
+        {
+            'eventCategory': 'game',
+            'event': 'make bet',
+            'gameId': game_id,
+            'hadnId': hand_id,
+            'actor': actor,
+            'betSize': bet_size,
+            'nextPlayerToBet': next_betting_player
+        },
+        json=True,
+        # to=room_id,
+        broadcast=True
+    )
 
 
 @socketio.on('next_turn', namespace='/game')
-def next_turn(game_id):
+def next_turn(game_id, hand_id, actor):
     print('Next turn in game #' + str(game_id))
-    # emit("refresh_game_table", {'eventCategory': 'game', 'event': 'deal cards', 'gameId': game_id}, json=True, broadcast=True)#, to=room_id)
+    emit(
+        "refresh_game_table",
+        {
+            'eventCategory': 'game',
+            'event': 'next turn',
+            'gameId': game_id,
+            'actor': actor
+        },
+        json=True,
+        # to=room_id,
+        broadcast=True
+    )
