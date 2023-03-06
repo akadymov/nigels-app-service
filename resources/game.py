@@ -305,6 +305,6 @@ def status(game_id):
             'players': players_enriched,
             'host': room.host.username,
             'startedHands': [],
-            'gameScores': [],
+            'gameScores': game.get_scores(),
             'actionMessage': action_msg
     }), 200
