@@ -376,7 +376,13 @@ class Hand(db.Model):
 
     def all_turns_made(self):
         hand_turns = Turn.query.filter_by(hand_id=self.id).all()
-        return len(hand_turns) >= self.cards_per_player
+        finished_hand_turns = 0
+        for hand_turn in hand_turns:
+            if hand_turn.took_user_id:
+                finished_hand_turns =+ 1
+        print(finished_hand_turns)
+        print(self.cards_per_player)
+        return finished_hand_turns >= self.cards_per_player
 
     def get_current_turn(self, closed=False):
         players_count = Player.query.filter_by(game_id=self.game_id).count()
