@@ -448,11 +448,11 @@ class Hand(db.Model):
             for index in sorted(turn_players):
                 turn_players_ordered.append(turn_players[index])
             if app.debug:
-                print("Players' ids and cards in turn:")
+                print("Players' cards in turn:")
             for player_id in turn_players_ordered:
                 player_card = TurnCard.query.filter_by(turn_id=curr_turn.id, player_id=player_id).first()
                 if app.debug:
-                    print("Card in turn of player #" + str(player_id) + " is " + str(player_card))
+                    print(str(player_card))
                 if not player_card:
                     return User.query.filter_by(id=player_id).first()
         elif last_turn:                     # if this is last turn in hand
@@ -530,20 +530,27 @@ class Turn(db.Model):
         for card in turn_cards:
             if not highest_card:
                 # if card is first to be checked it becomes highest automatically
+                if app.debug:
+                    print(str(card) + ' is first to analyze - it becomes highest')
                 highest_card['id'] = card.card_id.casefold()
                 highest_card['suit'] = card.card_suit.casefold()
             else:
                 card_suit = str(card.card_suit).casefold()
                 card_score = str(card.card_id).casefold()
                 if card_suit == trump:
-                    # logic for checking if card is higher trump within analyzed
                     if highest_card['suit'] != trump or trump_hierarchy.index(str(highest_card['id'])) < trump_hierarchy.index(str(card_score)):
+                        if app.debug:
+                            print(str(card) + ' is trump and is higher than ' + str(highest_card['id']) + str(highest_card['suit']))
                         highest_card['id'] = card_score
                         highest_card['suit'] = card_suit
                 elif turn_suit == card_suit and cards_hierarchy.index(str(highest_card['id'])) < cards_hierarchy.index(card_score) and highest_card['suit'] != trump:
                     # if card is in the same suit with turn and is higher than the highest card within analyzed it becomes highest in turn within analyzed
+                    if app.debug:
+                        print(str(card) + ' is same suit as turn starting card and is higher than ' + str(highest_card['id']) + str(highest_card['suit']))
                     highest_card['id'] = card_score
                     highest_card['suit'] = card_suit
+            if app.debug:
+                print('Highest turn card within analyzed ones is ' + str(highest_card))
         return highest_card
 
     def __repr__(self):

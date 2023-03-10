@@ -312,7 +312,10 @@ def put_card(game_id, hand_id, card_id):
     if app.debug:
         print(str(len(t.stroke_cards())) + ' cards were stroke in turn #' + str(t.id))
     if len(t.stroke_cards()) == players_count:
-        print(highest_turn_card)
+        highest_turn_card = t.highest_card()
+        if app.debug:
+            print('All cards were stroke in turn #' + str(t.id))
+            print('Highest turn card is ' + str(highest_turn_card))
         took_player = User.query.filter_by(
             id=DealtCards.query.filter_by(
                 hand_id=str(hand_id),
@@ -328,7 +331,7 @@ def put_card(game_id, hand_id, card_id):
         if h.cards_per_player == hand_turns_cnt:
             h.is_closed = 1
             for player in g.players:
-                hs = HandScore.query.filter_by(hand_id = hand_id, player_id = player.user_id).first()
+                hs = HandScore.query.filter_by(hand_id = hand_id, player_id = player.id).first()
                 if hs:
                     hs.calculate_current_score()
             if g.all_hands_played():
