@@ -243,12 +243,13 @@ class Game(db.Model):
             for player in self.players.all():
                 username = User.query.filter_by(id=player.id).first().username
                 hand_score = HandScore.query.filter_by(hand_id=hand.id, player_id=player.id).first()
-                print(hand_score)
-                game_scores['hand #' + str(hand.serial_no)][username] = {}
-                game_scores['hand #' + str(hand.serial_no)][username]['bet_size'] = hand_score.bet_size if hand_score.bet_size else None
-                game_scores['hand #' + str(hand.serial_no)][username]['score'] = hand_score.score if hand_score.score else None
-                game_scores['hand #' + str(hand.serial_no)][username]['bonus'] = hand_score.bonus if hand_score.bonus else None
-                game_scores['total'][username]['score'] = game_scores['total'][username]['score'] + hand_score.score if hand_score.score else 0
+                if hand_score:
+                    print(hand_score)
+                    game_scores['hand #' + str(hand.serial_no)][username] = {}
+                    game_scores['hand #' + str(hand.serial_no)][username]['bet_size'] = hand_score.bet_size if hand_score.bet_size else None
+                    game_scores['hand #' + str(hand.serial_no)][username]['score'] = hand_score.score if hand_score.score else None
+                    game_scores['hand #' + str(hand.serial_no)][username]['bonus'] = hand_score.bonus if hand_score.bonus else None
+                    game_scores['total'][username]['score'] = game_scores['total'][username]['score'] + hand_score.score if hand_score.score else 0
         return game_scores
 
 
@@ -393,8 +394,12 @@ class Hand(db.Model):
         if closed:
             return hand_turns[0]
         for ht in hand_turns:
+            if app.debug:
+                print('hand turn: #' + str(ht.id))
             turn_cards_count = TurnCard.query.filter_by(turn_id=ht.id).count()
             if turn_cards_count != players_count:
+                if app.debug:
+                    print(str(turn_cards_count) + ' cards were put out of ' + str(players_count))
                 return Turn.query.filter_by(id=ht.id).first()
         return None
 
@@ -415,7 +420,12 @@ class Hand(db.Model):
         game_players = Player.query.filter_by(game_id=self.game_id).all()
         players_count = Player.query.filter_by(game_id=self.game_id).count()
         turn_players = {}
-        if last_turn and curr_turn:
+        if app.debug:
+            print('Current turn is ' + str(curr_turn))
+            print('Last turn is ' + str(last_turn))
+        if last_turn and curr_turn:         # This is ongoing and not last turn
+            if app.debug:
+                print('This is ongoing and not last turn')
             last_turn_took_player_pos = self.get_position(User.query.filter_by(id=last_turn.took_user_id).first())
             for player in game_players:
                 turn_position = (self.get_position(User.query.filter_by(id=player.user_id).first()) + last_turn_took_player_pos) % players_count
@@ -428,21 +438,30 @@ class Hand(db.Model):
                 if not player_card:
                     return User.query.filter_by(id=player_id).first()
             return User.query.filter_by(id=last_turn.took_user_id).first()
-        elif curr_turn:
+        elif curr_turn:                     # if this is first turn in hand
+            if app.debug:
+                print('This is first ongoing turn in hand')
             for player in game_players:
                 turn_position = self.get_position(User.query.filter_by(id=player.user_id).first())
                 turn_players[turn_position] = player.user_id
             turn_players_ordered = []
             for index in sorted(turn_players):
                 turn_players_ordered.append(turn_players[index])
+            if app.debug:
+                print("Players' ids and cards in turn:")
             for player_id in turn_players_ordered:
                 player_card = TurnCard.query.filter_by(turn_id=curr_turn.id, player_id=player_id).first()
+                if app.debug:
+                    print("Card in turn of player #" + str(player_id) + " is " + str(player_card))
                 if not player_card:
                     return User.query.filter_by(id=player_id).first()
-        elif last_turn:
-            print(last_turn.took_user_id)
+        elif last_turn:                     # if this is last turn in hand
+            if app.debug:
+                print('Now starting new turn in hand (last turn #' + str(last_turn.id) + ' was taken by player with #' + str(last_turn.took_user_id) + ')')
             return User.query.filter_by(id=last_turn.took_user_id).first()
-        return self.get_starter()
+        if app.debug:
+            print('This is first turn of hand')
+        return self.get_starter()           # if this is first turn of whole game
 
 
 class DealtCards(db.Model):
@@ -503,27 +522,26 @@ class Turn(db.Model):
 
     def highest_card(self):
         turn_cards = TurnCard.query.filter_by(turn_id=self.id).order_by(TurnCard.id).all()
+        turn_suit = self.get_starting_suit()
         trump = Hand.query.filter_by(id=self.hand_id).first().trump.casefold()
         highest_card = {}
-        turn_suit = self.get_starting_suit().casefold()
         cards_hierarchy = ['2', '3', '4', '5', '6', '7', '8', '9', 't', 'j', 'q', 'k', 'a']
         trump_hierarchy = ['2', '3', '4', '5', '6', '7', '8', 't', 'q', 'k', 'a', '9', 'j']
         for card in turn_cards:
             if not highest_card:
+                # if card is first to be checked it becomes highest automatically
                 highest_card['id'] = card.card_id.casefold()
                 highest_card['suit'] = card.card_suit.casefold()
             else:
                 card_suit = str(card.card_suit).casefold()
                 card_score = str(card.card_id).casefold()
                 if card_suit == trump:
-                    if highest_card['suit'] != trump or trump_hierarchy.index(str(highest_card['id'])) < trump_hierarchy.index(card_score):
+                    # logic for checking if card is higher trump within analyzed
+                    if highest_card['suit'] != trump or trump_hierarchy.index(str(highest_card['id'])) < trump_hierarchy.index(str(card_score)):
                         highest_card['id'] = card_score
                         highest_card['suit'] = card_suit
-                elif cards_hierarchy.index(str(highest_card['id'])) \
-                        < cards_hierarchy.index(card_score):
-                    highest_card['id'] = card_score
-                    highest_card['suit'] = card_suit
-                elif turn_cards.index(card) == 0:
+                elif turn_suit == card_suit and cards_hierarchy.index(str(highest_card['id'])) < cards_hierarchy.index(card_score) and highest_card['suit'] != trump:
+                    # if card is in the same suit with turn and is higher than the highest card within analyzed it becomes highest in turn within analyzed
                     highest_card['id'] = card_score
                     highest_card['suit'] = card_suit
         return highest_card

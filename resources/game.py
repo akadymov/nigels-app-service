@@ -278,14 +278,14 @@ def status(game_id):
     if game.finished:
         action_msg = 'This game is closed!'
     elif positions_defined:
-        if current_hand is None:
+        if current_hand is None:                        # if hand is not started yet
             can_deal = True
             action_msg = 'Dealing cards...'
-        elif not current_hand.all_bets_made():
+        elif not current_hand.all_bets_made():          # if hand is started, but there are still bets to make
             action_msg = '{username} is making bet...'.format(username=current_hand.next_betting_user().username)
-        elif not current_hand.all_turns_made():
+        elif not current_hand.all_turns_made():         # if hand is not finished
             action_msg = "{username}'s turn...".format(username=current_hand.next_card_putting_user().username)
-        else:
+        else:                                           # if hand is just finished
             action_msg = 'Hand is finished'
 
 
