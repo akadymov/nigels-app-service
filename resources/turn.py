@@ -70,12 +70,12 @@ def bet(game_id, hand_id):
                 }
             ]
         }), 400
-    next_betting_user = h.next_betting_user()
-    if next_betting_user != requesting_user:
+    next_acting_player = h.next_acting_player()
+    if next_acting_player != requesting_user:
         return jsonify({
             'errors': [
                 {
-                    'message': "It is {username}'s turn now!".format(username=next_betting_user.username)
+                    'message': "It is {username}'s turn now!".format(username=next_acting_player.username)
                 }
             ]
         }), 403
@@ -176,7 +176,15 @@ def put_card(game_id, hand_id, card_id):
             ]
         }), 403
 
-    curr_player = h.next_card_putting_user()
+    curr_player = h.next_acting_player()
+    if not h.next_acting_player:
+        return jsonify({
+            'errors': [
+                {
+                    'message': "Technical error: can not define next acting player!"
+                }
+            ]
+        }), 403
     if requesting_user != curr_player:
         return jsonify({
             'errors': [

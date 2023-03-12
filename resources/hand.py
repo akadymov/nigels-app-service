@@ -59,6 +59,8 @@ def deal_cards(game_id):
     trump = 'd'
     cards_per_player = min(floor(52/game.players.count()), 10)
     starting_player = game.get_starter()
+    if app.debug:
+        print('Game starter is ' + str(starting_player.username))
     new_hand_id = 1
     # FIXME: for some reason hand.id autoincrement does not work - it's temporary fix until autoincrement is restored
     last_hand = Hand.query.order_by(Hand.id.desc()).first()
@@ -243,9 +245,7 @@ def status(game_id, hand_id):
             })
 
     current_turn = hand.get_current_turn(closed=True)
-    next_player = hand.next_betting_user()
-    if hand.all_bets_made():
-        next_player = hand.next_card_putting_user()
+    next_player = hand.next_acting_player()
 
     cards_on_table = []
     if current_turn:

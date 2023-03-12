@@ -282,12 +282,11 @@ def status(game_id):
             can_deal = True
             action_msg = 'Dealing cards...'
         elif not current_hand.all_bets_made():          # if hand is started, but there are still bets to make
-            action_msg = '{username} is making bet...'.format(username=current_hand.next_betting_user().username)
+            action_msg = '{username} is making bet...'.format(username=current_hand.next_acting_player().username)
         elif not current_hand.all_turns_made():         # if hand is not finished
-            action_msg = "{username}'s turn...".format(username=current_hand.next_card_putting_user().username)
+            action_msg = "{username}'s turn...".format(username=current_hand.next_acting_player().username)
         else:                                           # if hand is just finished
             action_msg = 'Hand is finished'
-
 
 
     return jsonify({
