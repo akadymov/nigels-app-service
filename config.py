@@ -25,7 +25,7 @@ class Config(object):
     ALLOWED_LANGS = os.environ.get('ALLOWED_LANGS') or ['ru', 'en']
     TOKEN_LIFETIME = os.environ.get('TOKEN_LIFETIME') or 86400  # 24 hours
     API_BASE_PATH = os.environ.get('API_BASE_PATH') or '/api/v1'
-    MAX_USERS_PER_ROOM = os.environ.get('MAX_USERS_PER_ROOM') or 10
+    MAX_USERS_PER_ROOM = os.environ.get('MAX_USERS_PER_ROOM') or 6
     DEFAULT_LANG = os.environ.get('DEFAULT_LANG') or 'en'
     MIN_PLAYER_TO_START = os.environ.get('MIN_PLAYER_TO_START') or 2
     MAX_PLAYER_TO_START = os.environ.get('MAX_PLAYER_TO_START') or 10
