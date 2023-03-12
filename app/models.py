@@ -430,7 +430,7 @@ class Hand(db.Model):
             return None
 
         # if bets are not made in hand position shift is defined with made bets
-        if not hand_made_bets:
+        if hand_made_bets != game_players_cnt:
             if app.debug:
                 print('Bets are not made in hand position: shift is defined with made bets')
             position_shift = hand_made_bets
