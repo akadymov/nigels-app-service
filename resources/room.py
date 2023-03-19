@@ -18,6 +18,7 @@ def generate_users_json(target_room, connected_users):
         else:
             is_ready = target_room.if_user_is_ready(u)
         users_json.append({
+            'id': u.id,
             'username': u.username,
             'ready': is_ready,
             'rating': 0
@@ -315,6 +316,7 @@ def status(room_id):
         }), 404
 
     connected_users = room.connected_users
+    print(room.connected_users)
     users_json = generate_users_json(room,connected_users)
     games_json = generate_games_json(room)
 

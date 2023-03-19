@@ -291,6 +291,7 @@ def status(game_id):
 
     return jsonify({
             'gameId': game.id,
+            'roomName': Room.query.filter_by(id=game.room_id).first().room_name,
             'roomId': game.room_id,
             'positionsDefined': positions_defined,
             'canDeal': can_deal,
