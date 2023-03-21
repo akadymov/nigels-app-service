@@ -333,6 +333,7 @@ def status(game_id):
         'roomId': game.room_id,
         'positionsDefined': positions_defined,
         'canDeal': can_deal,
+        'betsAreMade': current_hand.all_bets_made() if current_hand else None,
         'currentHandId': current_hand.id if current_hand else None,
         'currentHandSerialNo': current_hand.serial_no if current_hand else None,
         'trump': current_hand.trump if current_hand else None,
