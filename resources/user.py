@@ -49,7 +49,7 @@ def create_user():
         errors.append({'field': 'password', 'message': app.config['PASSWORD_REQUIREMENTS']})
     if User.query.filter_by(username=username.casefold()).count() > 0:
         errors.append(
-            {'field': 'username', 'message': 'User with username {username} already exists!'.format(username=username)})
+            {'field': 'username', 'message': 'Username "{username}" is unavailable!'.format(username=username)})
     if User.query.filter_by(email=email).first() is not None:
         errors.append({'field': 'email', 'message': 'User with email {email} already exists!'.format(email=email)})
     if preferred_lang not in app.config['ALLOWED_LANGS']:

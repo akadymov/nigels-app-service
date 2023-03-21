@@ -193,7 +193,7 @@ def get_hand_cards(game_id, hand_id):
         'trump': h.trump,
         'player': requesting_user.username,
         'cardsInHand': cards,
-        'myPosition': h.get_position(requesting_user)
+        'myPosition': h.get_players_relative_positions(requesting_user.id)
     }), 200
 
 

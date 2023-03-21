@@ -3,7 +3,7 @@
 from flask import url_for, request, jsonify, Blueprint
 from flask_cors import cross_origin
 from app import app, db
-from app.models import User, Room, Game, Player, Hand
+from app.models import User, Room, Game, Player, Hand, HandScore
 from datetime import datetime
 import random
 
@@ -233,7 +233,7 @@ def positions(game_id):
     }), 200
 
 
-@game.route('{base_path}/game/<game_id>'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+@game.route('{base_path}/game/<game_id>'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
 @cross_origin()
 def status(game_id):
 
@@ -257,20 +257,59 @@ def status(game_id):
             ]
         }), 401
 
-    players = Player.query.filter_by(game_id=game_id).order_by(Player.position).all()
     players_enriched = []
+    players = Player.query.filter_by(game_id=game_id).order_by(Player.position).all()
     positions_defined = True
-    for player in players:
-        user = User.query.filter_by(id=player.user_id).first()
-        if player.position is None:
-            positions_defined = False
-        if user:
-            players_enriched.append({
-                'username': user.username,
-                'position': player.position
-            })
+    requesting_user = None
+    requesting_user_is_player = False
 
     current_hand = game.last_open_hand()
+
+    token = request.json.get('token')
+    my_info = {}
+    if token:
+        requesting_user = User.verify_api_auth_token(token)
+        if requesting_user:
+            for player in players:
+                if player.user_id == requesting_user.id:
+                    requesting_user_is_player = True
+                    my_info['username'] = requesting_user.username
+                    my_info['position'] = player.position
+                    if current_hand:
+                        my_scores = HandScore.query.filter_by(player_id=requesting_user.id, hand_id=current_hand.id).first()
+                        my_info['dealtCards'] = current_hand.get_user_current_hand(requesting_user)
+                        my_info['betSize'] = my_scores.bet_size if my_scores else 0
+                        my_info['tookBets'] = my_scores.took_turns() if my_scores else 0
+                    else:
+                        my_info['dealtCards'] = []
+
+    next_player = None
+    if current_hand:
+        next_player = current_hand.next_acting_player()
+        for player in players:
+            user = User.query.filter_by(id=player.user_id).first()
+            if user:
+                user_scores = HandScore.query.filter_by(player_id=user.id, hand_id=current_hand.id).first()
+                players_enriched.append({
+                    'username': user.username,
+                    'position': current_hand.get_position(user),
+                    'betSize': user_scores.bet_size if user_scores else None,
+                    'tookTurns': user_scores.took_turns() if user_scores else 0,
+                    'cardsOnHand': len(current_hand.get_user_current_hand(user)),
+                    'relativePosition': game.get_player_relative_positions(requesting_user.id, player.user_id) if requesting_user_is_player else player.position
+                })
+    else:
+        for player in players:
+            user = User.query.filter_by(id=player.user_id).first()
+            if player.position is None:
+                positions_defined = False
+            if user:
+                players_enriched.append({
+                    'username': user.username,
+                    'position': player.position,
+                    'relativePosition': game.get_player_relative_positions(requesting_user.id, player.user_id) if requesting_user_is_player else player.position
+                })
+
     played_hands_count = Hand.query.filter_by(game_id=game_id, is_closed=1).count()
 
     action_msg = 'Game #{game_id} started by {hostname}! Host is to shuffle positions.'.format(game_id=game_id, hostname=room.host.username)
@@ -288,23 +327,30 @@ def status(game_id):
         else:                                           # if hand is just finished
             action_msg = 'Hand is finished'
 
+    response_json = {
+        'gameId': game.id,
+        'roomName': Room.query.filter_by(id=game.room_id).first().room_name,
+        'roomId': game.room_id,
+        'positionsDefined': positions_defined,
+        'canDeal': can_deal,
+        'currentHandId': current_hand.id if current_hand else None,
+        'currentHandSerialNo': current_hand.serial_no if current_hand else None,
+        'trump': current_hand.trump if current_hand else None,
+        'cardsPerPlayer': current_hand.cards_per_player if current_hand else None,
+        'currentHandLocation': url_for('hand.status', hand_id=current_hand.id, game_id=game_id) if current_hand else None,
+        'playedHandsCount': played_hands_count,
+        'started': game.started,
+        'status': 'open' if game.finished is None else 'finished',
+        'finished': game.finished,
+        'players': players_enriched,
+        'nextActingPlayer': next_player.username if next_player else None,
+        'host': room.host.username,
+        'startedHands': [],
+        'gameScores': game.get_scores(),
+        'actionMessage': action_msg,
+        'myInHandInfo': my_info
+    }
 
-    return jsonify({
-            'gameId': game.id,
-            'roomName': Room.query.filter_by(id=game.room_id).first().room_name,
-            'roomId': game.room_id,
-            'positionsDefined': positions_defined,
-            'canDeal': can_deal,
-            'currentHandId': current_hand.id if current_hand else None,
-            'currentHandSerialNo': current_hand.serial_no if current_hand else None,
-            'currentHandLocation': url_for('hand.status', hand_id=current_hand.id, game_id=game_id) if current_hand else None,
-            'playedHandsCount': played_hands_count,
-            'started': game.started,
-            'status': 'open' if game.finished is None else 'finished',
-            'finished': game.finished,
-            'players': players_enriched,
-            'host': room.host.username,
-            'startedHands': [],
-            'gameScores': game.get_scores(),
-            'actionMessage': action_msg
-    }), 200
+    print(response_json)
+
+    return jsonify(response_json), 200

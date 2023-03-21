@@ -250,6 +250,19 @@ class Game(db.Model):
                     game_scores['total'][username]['score'] = game_scores['total'][username]['score'] + hand_score.score if hand_score.score else 0
         return game_scores
 
+    def get_player_relative_positions(self, source_player_id, required_player_id):
+        source_player = Player.query.filter_by(game_id=self.id, user_id=source_player_id).first()
+        if not source_player:
+            return None
+        required_player = Player.query.filter_by(game_id=self.id, user_id=required_player_id).first()
+        if not required_player:
+            return None
+        if not required_player.position or not source_player.position:
+            return None
+        game_players = Player.query.filter_by(game_id=self.id).count()
+        return (required_player.position - source_player.position) % game_players
+
+
 
 class Player(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False, primary_key=True)
@@ -587,7 +600,7 @@ class Hand(db.Model):
         return self.get_starter()           # if this is first turn of whole game
 
 
-    def get_players_relative_positions(self):
+    def get_players_relative_positions(self, user_id=None):
         game_players = Player.query.filter_by(game_id=self.game_id).all()
         turn_players = []
         players_count = len(game_players)
@@ -614,6 +627,10 @@ class Hand(db.Model):
         result = sorted(turn_players, key = lambda tp: tp['turn_position'])
         if app.debug:
             print(result)
+        if user_id:
+            for player in result:
+                if player['player_id'] == user_id:
+                    return player['turn_position']
         return result
 
 
