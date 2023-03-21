@@ -738,3 +738,4 @@ class TurnCard(db.Model):
 
     def __repr__(self):
         return "<Card {}{} in hand {} put by player {}>".format(self.card_id, self.card_suit, self.hand_id, User.query.filter_by(id=self.player_id).first().username)
+

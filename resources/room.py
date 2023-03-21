@@ -3,8 +3,9 @@
 from flask import url_for, request, jsonify, Blueprint
 from flask_cors import cross_origin
 from app import app, db
-from app.models import User, Room
+from app.models import User, Room, Player
 from datetime import datetime
+from sqlalchemy import text
 
 
 room = Blueprint('room', __name__)
@@ -36,9 +37,21 @@ def generate_games_json(target_room):
         })
     return games_json
 
-@room.route('{base_path}/room/all'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+@room.route('{base_path}/room/all'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
 @cross_origin()
 def get_list():
+    connected_room = None
+    token = request.json.get('token')
+    if token:
+        requesting_user = User.verify_auth_token(token)
+        if requesting_user:
+            query = "SELECT room_id FROM connections WHERE user_id = {user_id}".format(user_id=requesting_user.id)
+            connections = db.session.execute(text(query))
+            print(connections)
+            if connections:
+                for connection in connections:
+                    print(connection)
+                    connected_room = connection[0]
     rooms = Room.query.filter_by(closed=None).all()
     if str(request.args.get('closed')).lower() == 'y':
         rooms = Room.query.all()
@@ -55,7 +68,10 @@ def get_list():
             'connect': url_for('room.connect', room_id=room.id)
         })
 
-    return jsonify({'rooms': rooms_json}), 200
+    return jsonify({
+        'rooms': rooms_json,
+        'myConnectedRoomId': connected_room if connected_room else None
+    }), 200
 
 
 @room.route('{base_path}/room'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
