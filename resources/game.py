@@ -267,6 +267,7 @@ def status(game_id):
 
     token = request.json.get('token')
     my_info = {}
+    cards_on_table = []
     if token:
         requesting_user = User.verify_api_auth_token(token)
         if requesting_user:
@@ -297,6 +298,24 @@ def status(game_id):
                     'tookTurns': user_scores.took_turns() if user_scores else 0,
                     'cardsOnHand': len(current_hand.get_user_current_hand(user)),
                     'relativePosition': game.get_player_relative_positions(requesting_user.id, player.user_id) if requesting_user_is_player else player.position
+                })
+        current_turn = current_hand.get_current_turn(closed=True)
+
+        if current_turn:
+            for card in current_turn.stroke_cards():
+                card_user = User.query.filter_by(id=card.player_id).first()
+                player_position = None
+                player_relative_position = None
+                if card_user:
+                    player_position = current_hand.get_position(card_user)
+                    player_relative_position = player_position
+                    if requesting_user_is_player:
+                        player_relative_position = game.get_player_relative_positions(requesting_user.id, card_user.id)
+                cards_on_table.append({
+                    'cardId': str(card.card_id) + card.card_suit,
+                    'playerId': card.player_id,
+                    'playerPosition': player_position,
+                    'playerRelativePosition': player_relative_position
                 })
     else:
         for player in players:
@@ -349,7 +368,8 @@ def status(game_id):
         'startedHands': [],
         'gameScores': game.get_scores(),
         'actionMessage': action_msg,
-        'myInHandInfo': my_info
+        'myInHandInfo': my_info,
+        'cardsOnTable': cards_on_table
     }
 
     print(response_json)

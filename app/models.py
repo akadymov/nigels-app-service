@@ -76,6 +76,14 @@ class User(UserMixin, db.Model):
         )
         # return s.dumps({'username': self.username, 'email': self.email})
 
+    def get_connected_room_id(self):
+        query = "SELECT room_id FROM connections WHERE user_id = {user_id}".format(user_id=self.id)
+        user_connections = db.session.execute(text(query))
+        if user_connections:
+            for connection in user_connections:
+                return connection[0]
+        return None
+
     @staticmethod
     def verify_auth_token(token):
         # s = Serializer(app.config['SECRET_KEY'])

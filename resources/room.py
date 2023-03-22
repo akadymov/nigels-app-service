@@ -29,12 +29,17 @@ def generate_users_json(target_room, connected_users):
 
 def generate_games_json(target_room):
     games = target_room.games
-    games_json = []
+    games_json = {
+        'ongoingGameId': None,
+        'gamesList': []
+    }
     for game in games:
-        games_json.append({
+        games_json['gamesList'].append({
             'id': game.id,
             'status': 'open' if game.finished is None else 'finished'
         })
+        if game.finished is None:
+            games_json['ongoingGameId'] = game.id
     return games_json
 
 @room.route('{base_path}/room/all'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
@@ -45,13 +50,7 @@ def get_list():
     if token:
         requesting_user = User.verify_auth_token(token)
         if requesting_user:
-            query = "SELECT room_id FROM connections WHERE user_id = {user_id}".format(user_id=requesting_user.id)
-            connections = db.session.execute(text(query))
-            print(connections)
-            if connections:
-                for connection in connections:
-                    print(connection)
-                    connected_room = connection[0]
+            connected_room = requesting_user.get_connected_room_id()
     rooms = Room.query.filter_by(closed=None).all()
     if str(request.args.get('closed')).lower() == 'y':
         rooms = Room.query.all()

@@ -23,7 +23,7 @@ def bet(game_id, hand_id):
         return jsonify({
             'errors': [
                 {
-                    'message': 'No bet size in request!'
+                    'message': 'Please, write down bet size!'
                 }
             ]
         }), 400
@@ -87,7 +87,7 @@ def bet(game_id, hand_id):
         return jsonify({
             'errors': [
                 {
-                    'message': 'Someone should stay unhappy! Change your bet size since you are last betting player in hand.'
+                    'message': 'Someone should stay unhappy! You cannot bet {bet_size} since you are last betting player in hand.'.format(bet_size=bet_size)
                 }
             ]
         }), 400

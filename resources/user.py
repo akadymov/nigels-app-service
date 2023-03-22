@@ -123,7 +123,8 @@ def post_token():
         token = user.generate_auth_token()
         return jsonify({
             'token': token,
-            'expiresIn': app.config['TOKEN_LIFETIME']
+            'expiresIn': app.config['TOKEN_LIFETIME'],
+            'connectedRoomId': user.get_connected_room_id()
         }), 201
 
 
