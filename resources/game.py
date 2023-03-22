@@ -83,7 +83,6 @@ def start():
                     }
                 ]
             }), 403
-
     g = Game(room=hosted_room)
     db.session.add(g)
     db.session.commit()

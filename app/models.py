@@ -185,7 +185,17 @@ class Room(db.Model):
     def if_user_is_ready(self, user):
         sql = text("SELECT ready FROM connections WHERE room_id= " + str(self.id) + " AND user_id=" + str(user.id))
         result = db.session.execute(sql).first()
-        return result[0]
+        if result[0]==1:
+            return True
+        return False
+
+    def current_status(self):
+        if self.closed:
+            return 'closed'
+        open_games = Game.query.filter_by(room_id=self.id, finished=None).count()
+        if open_games > 0:
+            return 'started'
+        return 'open'
 
 
 class Game(db.Model):

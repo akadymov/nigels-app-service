@@ -28,14 +28,14 @@ def create_room(room_id, room_name, host, created):
 
 
 @socketio.on('remove_room_from_lobby', namespace='/lobby')
-def remove_room_from_lobby(room_name):
-    print('Room ' + str(room_name) + ' was closed')
+def remove_room_from_lobby(room_id):
+    print('Room #' + str(room_id) + ' was closed')
     emit(
         'update_lobby',
         {
             'eventCategory': 'lobby',
             'event': 'close',
-            'roomName': room_name
+            'roomId': room_id
         },
         json=True,
         # to=room_id,
@@ -119,6 +119,20 @@ def disconnect_from_room(actor, username, room_id, room_name, connected_users):
         # to=room_id,
         broadcast=True
     )
+    emit(
+        'update_lobby',
+        {
+            'eventCategory': 'lobby',
+            'event': 'disconnect',
+            'roomId': room_id,
+            'roomName': room_name,
+            'connectedUsers': connected_users,
+            'actor': actor
+        },
+        namespace='/lobby',
+        # to=room_id,
+        broadcast=True
+    )
 
 
 @socketio.on('ready', namespace='/room')
@@ -133,7 +147,8 @@ def ready(actor, username, room_id):
             'username': username,
             'actor': actor
         },
-        json=True,
+        namespace='/room',
+        # json=True,
         # to=room_id,
         broadcast=True
     )
@@ -151,37 +166,39 @@ def not_ready(actor, username, room_id):
             'username': username,
             'actor': actor
         },
-        json=True,
+        namespace='/room',
+        # json=True,
         # to=room_id,
         broadcast=True
     )
 
 
 @socketio.on('close_room', namespace='/room')
-def close_room(actor, room_name):
-    print('Host has closed Room ' + str(room_name))
+def close_room(actor, room_id):
+    print('Host has closed Room #' + str(room_id))
     emit(
         "exit_room",
         {
             'eventCategory': 'room',
             'event': 'close',
-            'roomName': room_name,
+            'roomId': room_id,
             'username': 0,
             'actor': actor
         },
         # to=room_id,
+        namespace='/room',
         broadcast=True
     )
 
 
 @socketio.on('remove_room_from_lobby', namespace='/lobby')
-def remove_room_from_lobby (room_name):
+def remove_room_from_lobby (room_id):
     emit(
         'update_lobby',
         {
             'eventCategory': 'lobby',
             'event': 'close',
-            'roomName': room_name
+            'roomId': room_id
         },
         json=True,
         # to=room_id,
@@ -203,7 +220,21 @@ def start_game(actor, game_id, room_id):
         },
         json=True,
         # to=room_id,
-        broadcast=True
+        broadcast=True,
+        namespace='/room'
+    )
+    emit(
+        'update_lobby',
+        {
+            'eventCategory': 'lobby',
+            'event': 'start',
+            'roomId': room_id,
+            'newStatus': 'started'
+        },
+        json=True,
+        # to=room_id,
+        broadcast=True,
+        namespace='/room'
     )
 
 

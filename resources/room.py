@@ -15,7 +15,7 @@ def generate_users_json(target_room, connected_users):
     users_json = []
     for u in connected_users:
         if target_room.host.username == u.username:
-            is_ready = 1
+            is_ready = True
         else:
             is_ready = target_room.if_user_is_ready(u)
         users_json.append({
@@ -56,11 +56,12 @@ def get_list():
         rooms = Room.query.all()
     rooms_json = []
     for room in rooms:
+
         rooms_json.append({
             'roomId': room.id,
             'roomName': room.room_name,
             'host': room.host.username,
-            'status': 'open' if room.closed is None else 'closed',
+            'status': room.current_status(),
             'created': room.created,
             'closed': room.closed,
             'connectedUsers': room.connected_users.count(),
@@ -124,7 +125,7 @@ def create():
         'created': new_room.created,
         'closed': new_room.closed,
         'connectedUsers': new_room.connected_users.count(),
-        'status': 'open' if new_room.closed is None else 'closed',
+        'status': 'open',
         'connect': url_for('room.connect', room_id=new_room.id)
     }), 201
 
@@ -177,7 +178,7 @@ def close(room_id):
         'roomName': target_room.room_name,
         'host': target_room.host.username,
         'created': target_room.created,
-        'status': 'open' if target_room.closed is None else 'closed',
+        'status': 'closed',
         'closed': target_room.closed
     }), 201
 
@@ -245,7 +246,7 @@ def connect(room_id):
         'created': target_room.created,
         'closed': target_room.closed,
         'connectedUsers': target_room.connected_users.count(),
-        'status': 'open' if target_room.closed is None else 'closed',
+        'status': target_room.current_status(),
         'connect': url_for('room.connect', room_id=target_room.id)
     }), 201
 
@@ -312,7 +313,7 @@ def disconnect(room_id):
         'created': target_room.created,
         'closed': target_room.closed,
         'connectedUsers': target_room.connected_users.count(),
-        'status': 'open' if target_room.closed is None else 'closed',
+        'status': target_room.current_status(),
         'connect': url_for('room.connect', room_id=target_room.id)
     }), 201
 
@@ -338,7 +339,7 @@ def status(room_id):
             'roomId': room.id,
             'roomName': room.room_name,
             'host': room.host.username,
-            'status': 'open' if room.closed is None else 'closed',
+            'status': room.current_status(),
             'created': room.created,
             'closed': room.closed,
             'connectedUserList': users_json,
@@ -410,7 +411,7 @@ def ready(room_id):
             'roomId': target_room.id,
             'roomName': target_room.room_name,
             'host': target_room.host.username,
-            'status': 'open' if target_room.closed is None else 'closed',
+            'status': target_room.current_status(),
             'created': target_room.created,
             'closed': target_room.closed,
             'connectedUserList': users_json,
@@ -481,7 +482,7 @@ def not_ready(room_id):
             'roomId': target_room.id,
             'roomName': target_room.room_name,
             'host': target_room.host.username,
-            'status': 'open' if target_room.closed is None else 'closed',
+            'status': target_room.current_status(),
             'created': target_room.created,
             'closed': target_room.closed,
             'connectedUserList': users_json,
