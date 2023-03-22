@@ -280,7 +280,7 @@ def status(game_id):
                         my_scores = HandScore.query.filter_by(player_id=requesting_user.id, hand_id=current_hand.id).first()
                         my_info['dealtCards'] = current_hand.get_user_current_hand(requesting_user)
                         my_info['betSize'] = my_scores.bet_size if my_scores else 0
-                        my_info['tookBets'] = my_scores.took_turns() if my_scores else 0
+                        my_info['tookTurns'] = my_scores.took_turns() if my_scores else 0
                     else:
                         my_info['dealtCards'] = []
 
@@ -339,6 +339,8 @@ def status(game_id):
         if current_hand is None:                        # if hand is not started yet
             can_deal = True
             action_msg = 'Dealing cards...'
+        elif next_player == requesting_user:
+            action_msg = "It's your turn now"
         elif not current_hand.all_bets_made():          # if hand is started, but there are still bets to make
             action_msg = '{username} is making bet...'.format(username=current_hand.next_acting_player().username)
         elif not current_hand.all_turns_made():         # if hand is not finished
@@ -372,6 +374,5 @@ def status(game_id):
         'cardsOnTable': cards_on_table
     }
 
-    print(response_json)
 
     return jsonify(response_json), 200

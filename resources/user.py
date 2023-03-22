@@ -134,7 +134,6 @@ def edit_user(username):
 
     token = request.json.get('token')
     username = username.casefold()
-    # print('editing user ' + str(username))
     requesting_user = User.verify_api_auth_token(token)
     if requesting_user is None:
         return jsonify({

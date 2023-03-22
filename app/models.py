@@ -88,16 +88,13 @@ class User(UserMixin, db.Model):
     def verify_auth_token(token):
         # s = Serializer(app.config['SECRET_KEY'])
         try:
-            #print(token)
             data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
-            #print(data)
         except jwt.ExpiredSignatureError:
             return None
         except jwt.InvalidIssuerError:
             return None
         except jwt.InvalidTokenError:
             return None
-        #print(data['username'])
         user = User.query.filter_by(username=data['username']).first()
         return user
 
@@ -250,7 +247,6 @@ class Game(db.Model):
                 username = User.query.filter_by(id=player.id).first().username
                 hand_score = HandScore.query.filter_by(hand_id=hand.id, player_id=player.id).first()
                 if hand_score:
-                    print(hand_score)
                     game_scores['hand #' + str(hand.serial_no)][username] = {}
                     game_scores['hand #' + str(hand.serial_no)][username]['bet_size'] = hand_score.bet_size if hand_score.bet_size else None
                     game_scores['hand #' + str(hand.serial_no)][username]['score'] = hand_score.score if hand_score.score else None
@@ -353,7 +349,6 @@ class Hand(db.Model):
                 return User.query.filter_by(id=player_id).first()
         last_turn = self.get_last_turn()
         if last_turn:
-            print(last_turn.took_user_id)
             return User.query.filter_by(id=last_turn.took_user_id).first()
         return self.get_starter()
 
@@ -400,14 +395,11 @@ class Hand(db.Model):
         for hand_turn in hand_turns:
             if hand_turn.took_user_id:
                 finished_hand_turns =+ 1
-        print(finished_hand_turns)
-        print(self.cards_per_player)
         return finished_hand_turns >= self.cards_per_player
 
     def get_current_turn(self, closed=False):
         players_count = Player.query.filter_by(game_id=self.game_id).count()
         hand_turns = Turn.query.filter_by(hand_id=self.id).order_by(Turn.serial_no.desc()).all()
-        # print(hand_turns)
         if not hand_turns:
             return None
         if closed:
@@ -492,13 +484,13 @@ class Hand(db.Model):
                 last_turn = self.get_last_turn()
                 turn_starter = User.query.filter_by(id=last_turn.took_user_id).first()
                 if app.debug:
-                    print('Previous turn were taken by user "' + str(turn_starter.username) + '"')
+                    print('Previous turn were taken by user "' + str(turn_starter.username) + '" (user id ' + str(turn_starter.id) + ')')
                 if not turn_starter:
                     # Error: could not define last turn taker
                     if app.debug:
                         print('could not define last turn taker')
                     return None
-                turn_starter_player = Player.query.filter_by(user_id=turn_starter.id).first()
+                turn_starter_player = Player.query.filter_by(user_id=turn_starter.id, game_id=self.game_id).first()
                 if app.debug:
                     print('turn_starter_player user_id is ' + str(turn_starter_player.user_id))
                 shifted_position = (turn_starter_player.position + position_shift) % game_players_cnt

@@ -331,7 +331,6 @@ def status(room_id):
         }), 404
 
     connected_users = room.connected_users
-    print(room.connected_users)
     users_json = generate_users_json(room,connected_users)
     games_json = generate_games_json(room)
 

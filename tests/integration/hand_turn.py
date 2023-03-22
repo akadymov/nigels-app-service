@@ -4,7 +4,6 @@ from tests.base_case import BaseCase
 import json
 
 
-print()
 
 class HandTurnMethodsCase(BaseCase):
 
@@ -23,8 +22,6 @@ class HandTurnMethodsCase(BaseCase):
             "username": username,
             "password": password
         })
-
-        print(app.config['API_BASE_PATH'])
 
         # register user
         create_host_response = self.app.post('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']),
