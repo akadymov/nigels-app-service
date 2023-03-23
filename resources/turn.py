@@ -82,7 +82,13 @@ def bet(game_id, hand_id):
 
     # "Someone should stay unhappy" (rule name)
     made_bets = h.get_sum_of_bets()
-    is_last_bet = h.is_betting_last(requesting_user)
+
+    hs = HandScore(player_id=requesting_user.id, hand_id=hand_id, bet_size=bet_size)
+    db.session.add(hs)
+    db.session.commit()
+
+    bets_count = HandScore.query.filter_by(hand_id=hand_id).count()
+    is_last_bet = bets_count == Player.query.filter_by(game_id=game_id).count()
     if is_last_bet and bet_size + made_bets == h.cards_per_player:
         return jsonify({
             'errors': [
@@ -91,10 +97,6 @@ def bet(game_id, hand_id):
                 }
             ]
         }), 400
-
-    hs = HandScore(player_id=requesting_user.id, hand_id=hand_id, bet_size=bet_size)
-    db.session.add(hs)
-    db.session.commit()
 
     next_player = h.next_acting_player()
 
@@ -185,14 +187,15 @@ def put_card(game_id, hand_id, card_id):
                 }
             ]
         }), 403
-    if requesting_user != curr_player:
-        return jsonify({
-            'errors': [
-                {
-                    'message': "It is {username}'s turn now!".format(username=curr_player.username)
-                }
-            ]
-        }), 403
+    if curr_player is not None:
+        if requesting_user != curr_player:
+            return jsonify({
+                'errors': [
+                    {
+                        'message': "It is {username}'s turn now!".format(username=curr_player.username)
+                    }
+                ]
+            }), 403
 
     card_id = card_id.casefold()
 
@@ -227,7 +230,9 @@ def put_card(game_id, hand_id, card_id):
         turn_suit = t.get_starting_suit().casefold()
         card_suit = card_id[-1:].casefold()
         card_score = str(card_id[:1]).casefold()
-        hand_trump = h.trump.casefold()
+        hand_trump = h.trump
+        if hand_trump:
+            hand_trump = hand_trump.casefold()
         trump_hierarchy = np.array(['2', '3', '4', '5', '6', '7', '8', 't', 'q', 'k', 'a', '9', 'j'])
 
         is_turn_suit = turn_suit == card_suit
@@ -340,7 +345,7 @@ def put_card(game_id, hand_id, card_id):
         if h.cards_per_player == hand_turns_cnt:
             h.is_closed = 1
             for player in g.players:
-                if player.user_id == requesting_user.id:
+                if player.id == requesting_user.id:
                     requesting_user_is_player = True
                 hs = HandScore.query.filter_by(hand_id = hand_id, player_id = player.id).first()
                 if hs:
@@ -379,6 +384,6 @@ def put_card(game_id, hand_id, card_id):
         'handIsFinished': True if h.is_closed == 1 else False,
         'gameIsFinished': True if g.finished else False,
         'gameScores': game_scores,
-        'isLastCardInHand': h.all_turns_made() and len(cards_on_table) == g.players.count(),
+        'isLastCardInHand': h.is_closed == 1,
         'nextActingPlayer': next_player.username if next_player else None
     }), 200

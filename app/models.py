@@ -251,16 +251,17 @@ class Game(db.Model):
             game_scores['total'][username]['score'] = 0
         for hand in played_hands:
             game_scores['hand #' + str(hand.serial_no)] = {}
-            game_scores['hand #' + str(hand.serial_no)]['cards_per_player'] = hand.cards_per_player
+            game_scores['hand #' + str(hand.serial_no)]['cardsPerPlayer'] = hand.cards_per_player
             game_scores['hand #' + str(hand.serial_no)]['trump'] = hand.trump
             for player in self.players.all():
                 username = User.query.filter_by(id=player.id).first().username
                 hand_score = HandScore.query.filter_by(hand_id=hand.id, player_id=player.id).first()
                 if hand_score:
                     game_scores['hand #' + str(hand.serial_no)][username] = {}
-                    game_scores['hand #' + str(hand.serial_no)][username]['bet_size'] = hand_score.bet_size if hand_score.bet_size else None
+                    game_scores['hand #' + str(hand.serial_no)][username]['betSize'] = hand_score.bet_size if hand_score.bet_size else None
+                    game_scores['hand #' + str(hand.serial_no)][username]['tookBets'] = hand_score.score - 10 * (1 if hand_score.bonus else 0)
                     game_scores['hand #' + str(hand.serial_no)][username]['score'] = hand_score.score if hand_score.score else None
-                    game_scores['hand #' + str(hand.serial_no)][username]['bonus'] = hand_score.bonus if hand_score.bonus else None
+                    game_scores['hand #' + str(hand.serial_no)][username]['bonus'] = hand_score.bonus == 1
                     game_scores['total'][username]['score'] = game_scores['total'][username]['score'] + hand_score.score if hand_score.score else 0
         return game_scores
 
@@ -403,8 +404,12 @@ class Hand(db.Model):
         hand_turns = Turn.query.filter_by(hand_id=self.id).all()
         finished_hand_turns = 0
         for hand_turn in hand_turns:
-            if hand_turn.took_user_id:
+            if hand_turn.took_user_id is not None:
                 finished_hand_turns =+ 1
+        if app.debug:
+            print('Hand turns: ' + str(hand_turns))
+            print('Finished hand turns: ' + str(finished_hand_turns))
+            print('All turns are made? - ' + str(finished_hand_turns >= self.cards_per_player))
         return finished_hand_turns >= self.cards_per_player
 
     def get_current_turn(self, closed=False):
@@ -705,7 +710,9 @@ class Turn(db.Model):
     def highest_card(self):
         turn_cards = TurnCard.query.filter_by(turn_id=self.id).order_by(TurnCard.id).all()
         turn_suit = self.get_starting_suit()
-        trump = Hand.query.filter_by(id=self.hand_id).first().trump.casefold()
+        trump = Hand.query.filter_by(id=self.hand_id).first().trump
+        if trump:
+            trump = trump.casefold()
         highest_card = {}
         cards_hierarchy = ['2', '3', '4', '5', '6', '7', '8', '9', 't', 'j', 'q', 'k', 'a']
         trump_hierarchy = ['2', '3', '4', '5', '6', '7', '8', 't', 'q', 'k', 'a', '9', 'j']
