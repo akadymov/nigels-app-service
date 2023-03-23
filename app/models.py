@@ -244,26 +244,49 @@ class Game(db.Model):
     def get_scores(self):
         game_scores = {}
         played_hands = Hand.query.filter_by(game_id=self.id).all()
-        game_scores['total'] = {}
-        for player in self.players.all():
-            username = User.query.filter_by(id=player.id).first().username
-            game_scores['total'][username] = {}
-            game_scores['total'][username]['score'] = 0
+        players = self.players.all()
+        headers = ['']
+        rows = []
+        total_score = {}
+        for player in players:
+            total_score[player.username] = 0
+            headers.append(str(player.username))
         for hand in played_hands:
-            game_scores['hand #' + str(hand.serial_no)] = {}
-            game_scores['hand #' + str(hand.serial_no)]['cardsPerPlayer'] = hand.cards_per_player
-            game_scores['hand #' + str(hand.serial_no)]['trump'] = hand.trump
-            for player in self.players.all():
-                username = User.query.filter_by(id=player.id).first().username
+            data_array = [{
+                'type': 'hand id',
+                'cards': str(hand.cards_per_player),
+                'trump': str(hand.trump) if hand.trump else 'x'
+            }]
+            for player in players:
                 hand_score = HandScore.query.filter_by(hand_id=hand.id, player_id=player.id).first()
                 if hand_score:
-                    game_scores['hand #' + str(hand.serial_no)][username] = {}
-                    game_scores['hand #' + str(hand.serial_no)][username]['betSize'] = hand_score.bet_size if hand_score.bet_size else None
-                    game_scores['hand #' + str(hand.serial_no)][username]['tookBets'] = hand_score.score - 10 * (1 if hand_score.bonus else 0)
-                    game_scores['hand #' + str(hand.serial_no)][username]['score'] = hand_score.score if hand_score.score else None
-                    game_scores['hand #' + str(hand.serial_no)][username]['bonus'] = hand_score.bonus == 1
-                    game_scores['total'][username]['score'] = game_scores['total'][username]['score'] + hand_score.score if hand_score.score else 0
-        return game_scores
+                    data_array.append({
+                        'type': 'score',
+                        'betSize': hand_score.bet_size,
+                        'tookTurns': hand_score.score if hand_score.score else 0 - (10 if hand_score.bonus else 0),
+                        'bonus': hand_score.bonus,
+                        'score': hand_score.score
+                    })
+                    total_score[player.username] += hand_score.score if hand_score.score else 0
+            rows.append({
+                'id': str(hand.cards_per_player) + str(hand.trump),
+                'dataArray': data_array
+            })
+        totals_data_array = [{'type': 'text', 'value': 'total'}]
+        for player in players:
+            totals_data_array.append({
+                'type': 'score',
+                'total': True,
+                'score': total_score[player.username]
+            })
+        rows.append({
+            'id': 'total',
+            'dataArray':totals_data_array
+        })
+        return {
+            'headers': headers,
+            'rows': rows
+        }
 
     def get_player_relative_positions(self, source_player_id, required_player_id):
         source_player = Player.query.filter_by(game_id=self.id, user_id=source_player_id).first()
@@ -498,13 +521,14 @@ class Hand(db.Model):
                     print('Current turn is not first: actor is calculated based on previous turn taker')
                 last_turn = self.get_last_turn()
                 turn_starter = User.query.filter_by(id=last_turn.took_user_id).first()
-                if app.debug:
-                    print('Previous turn were taken by user "' + str(turn_starter.username) + '" (user id ' + str(turn_starter.id) + ')')
                 if not turn_starter:
                     # Error: could not define last turn taker
                     if app.debug:
                         print('could not define last turn taker')
                     return None
+                else:
+                    if app.debug:
+                        print('Previous turn were taken by user "' + str(turn_starter.username) + '" (user id ' + str(turn_starter.id) + ')')
                 turn_starter_player = Player.query.filter_by(user_id=turn_starter.id, game_id=self.game_id).first()
                 if app.debug:
                     print('turn_starter_player user_id is ' + str(turn_starter_player.user_id))
