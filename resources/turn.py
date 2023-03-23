@@ -96,14 +96,14 @@ def bet(game_id, hand_id):
     db.session.add(hs)
     db.session.commit()
 
-    next_player = h.next_betting_user()
+    next_player = h.next_acting_player()
 
     return jsonify({
         'numberOfPlayers': game.players.count(),
         'serialNumberOfHand': h.serial_no,
         'playerPosition': requesting_player_current_pos,
         'isLastPlayerToBet': is_last_bet,
-        'nextPlayerToBet': next_player.username if next_player and not is_last_bet else None,
+        'nextActingPlayer': next_player.username,
         'madeBets': made_bets + bet_size,
         'cardsPerPlayer': h.cards_per_player
     }), 200
@@ -317,6 +317,7 @@ def put_card(game_id, hand_id, card_id):
 
     took_player = None
     game_scores = None
+    requesting_user_is_player = False
     if app.debug:
         print(str(len(t.stroke_cards())) + ' cards were stroke in turn #' + str(t.id))
     if len(t.stroke_cards()) == players_count:
@@ -339,6 +340,8 @@ def put_card(game_id, hand_id, card_id):
         if h.cards_per_player == hand_turns_cnt:
             h.is_closed = 1
             for player in g.players:
+                if player.user_id == requesting_user.id:
+                    requesting_user_is_player = True
                 hs = HandScore.query.filter_by(hand_id = hand_id, player_id = player.id).first()
                 if hs:
                     hs.calculate_current_score()
@@ -350,7 +353,22 @@ def put_card(game_id, hand_id, card_id):
 
     cards_on_table = []
     for card in t.stroke_cards():
-        cards_on_table.append(str(card.card_id) + card.card_suit)
+        card_user = User.query.filter_by(id=card.player_id).first()
+        player_position = None
+        player_relative_position = None
+        if card_user:
+            player_position = h.get_position(card_user)
+            player_relative_position = player_position
+            if requesting_user_is_player:
+                player_relative_position = g.get_player_relative_positions(requesting_user.id, card_user.id)
+        cards_on_table.append({
+            'cardId': str(card.card_id) + card.card_suit,
+            'playerId': card.player_id,
+            'playerPosition': player_position,
+            'playerRelativePosition': player_relative_position
+        })
+
+    next_player = h.next_acting_player()
 
     return jsonify({
         'turnNo': t.serial_no,
@@ -360,5 +378,7 @@ def put_card(game_id, hand_id, card_id):
         'tookPlayer': took_player.username if took_player else None,
         'handIsFinished': True if h.is_closed == 1 else False,
         'gameIsFinished': True if g.finished else False,
-        'gameScores': game_scores
+        'gameScores': game_scores,
+        'isLastCardInHand': h.all_turns_made() and len(cards_on_table) == g.players.count(),
+        'nextActingPlayer': next_player.username if next_player else None
     }), 200

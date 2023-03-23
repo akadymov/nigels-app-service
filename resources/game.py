@@ -213,18 +213,26 @@ def positions(game_id):
                 ]
             }), 403
 
-    players = game.players.all()
+    players = Player.query.filter_by(game_id=game_id).all()
     random.shuffle(players)
 
     players_list = []
+    requesting_user_is_player = False
     for player in players:
-        p = Player.query.filter_by(game_id=game_id,user_id=player.id).first()
+        p = Player.query.filter_by(game_id=game_id, user_id=player.user_id).first()
         p.position = players.index(player) + 1
         db.session.commit()
-        players_list.append({
-            'username': User.query.filter_by(id=p.user_id).first().username,
-            'position': p.position
-        })
+    for player in players:
+        if player.user_id == requesting_user.id:
+            requesting_user_is_player = True
+        user = User.query.filter_by(id=player.user_id).first()
+        if user:
+            players_list.append({
+                'username': user.username,
+                'position': player.position,
+                'relativePosition': game.get_player_relative_positions(requesting_user.id,
+                                                                       player.user_id) if requesting_user_is_player else player.position
+            })
 
     return jsonify({
         'gameId': game_id,

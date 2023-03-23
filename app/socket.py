@@ -1,16 +1,18 @@
-from app import socketio
+from app import socketio, app
 from flask_socketio import emit #, join_room, leave_room
 
 
 @socketio.on('connect', namespace='/lobby')
 def connect():
-    print('New socket connection established')
+    if app.debug:
+        print('New socket connection established')
     # emit("connect", {'eventCategory': 'service_events', 'event': 'server connection established'})
 
 
 @socketio.on('create_room', namespace='/lobby')
 def create_room(room_id, room_name, host, created):
-    print('New room "' + str(room_name) + '" was created')
+    if app.debug:
+        print('New room "' + str(room_name) + '" was created')
     emit(
         'update_lobby',
         {
@@ -29,7 +31,8 @@ def create_room(room_id, room_name, host, created):
 
 @socketio.on('remove_room_from_lobby', namespace='/lobby')
 def remove_room_from_lobby(room_id):
-    print('Room #' + str(room_id) + ' was closed')
+    if app.debug:
+        print('Room #' + str(room_id) + ' was closed')
     emit(
         'update_lobby',
         {
@@ -46,7 +49,8 @@ def remove_room_from_lobby(room_id):
 @socketio.on('increase_room_players', namespace='/lobby')
 def connect_to_room(username, room_id, room_name, connected_users):
     # join_room(room_id)
-    print('User ' + str(username) + ' connected to Room "' + str(room_name) + '" (now connected ' + str(connected_users) + ' players).')
+    if app.debug:
+        print('User ' + str(username) + ' connected to Room "' + str(room_name) + '" (now connected ' + str(connected_users) + ' players).')
     emit(
         'update_lobby',
         {
@@ -85,7 +89,8 @@ def connect_to_room(username, room_id, room_name, connected_users):
 @socketio.on('decrease_room_players', namespace='/lobby')
 def disconnect_from_room(actor, username, room_id, room_name, connected_users):
     # leave_room(room_id)
-    print('User ' + str(username) + ' disconnected from Room "' + str(room_name) + '" (now connected ' + str(connected_users) + ' players).')
+    if app.debug:
+        print('User ' + str(username) + ' disconnected from Room "' + str(room_name) + '" (now connected ' + str(connected_users) + ' players).')
     emit(
         'update_lobby',
         {
@@ -137,7 +142,8 @@ def disconnect_from_room(actor, username, room_id, room_name, connected_users):
 
 @socketio.on('ready', namespace='/room')
 def ready(actor, username, room_id):
-    print('User ' + str(username) + ' is ready to start in Room #' + str(room_id))
+    if app.debug:
+        print('User ' + str(username) + ' is ready to start in Room #' + str(room_id))
     emit(
         "update_room",
         {
@@ -156,7 +162,8 @@ def ready(actor, username, room_id):
 
 @socketio.on('not_ready', namespace='/room')
 def not_ready(actor, username, room_id):
-    print('User ' + str(username) + ' is NOT ready to start in Room #' + str(room_id))
+    if app.debug:
+        print('User ' + str(username) + ' is NOT ready to start in Room #' + str(room_id))
     emit(
         "update_room",
         {
@@ -175,7 +182,8 @@ def not_ready(actor, username, room_id):
 
 @socketio.on('close_room', namespace='/room')
 def close_room(actor, room_id):
-    print('Host has closed Room #' + str(room_id))
+    if app.debug:
+        print('Host has closed Room #' + str(room_id))
     emit(
         "exit_room",
         {
@@ -208,14 +216,15 @@ def remove_room_from_lobby (room_id):
 
 @socketio.on('start_game_in_room', namespace='/room')
 def start_game(actor, game_id, room_id):
-    print('Game #' + str(game_id) + ' started in room #' + str(room_id))
+    if app.debug:
+        print('Game #' + str(game_id) + ' started in room #' + str(room_id))
     emit(
         "start_game",
         {
             "eventCategory": "game",
             "event": "start",
             "gameId": game_id,
-            "roomId": room_id,
+            "roomId": int(room_id),
             'actor': actor
         },
         json=True,
@@ -240,7 +249,8 @@ def start_game(actor, game_id, room_id):
 
 @socketio.on('define_positions', namespace='/game')
 def define_positions(game_id, players_array):
-    print('Defined positions in game #' + str(game_id))
+    if app.debug:
+        print('Defined positions in game #' + str(game_id))
     emit(
         "refresh_game_table",
         {
@@ -250,6 +260,7 @@ def define_positions(game_id, players_array):
             'players': players_array
         },
         json=True,
+        namespase='/game',
         # to=room_id,
         broadcast=True
     )
@@ -257,7 +268,8 @@ def define_positions(game_id, players_array):
 
 @socketio.on('deal_cards', namespace='/game')
 def deal_cards(game_id):
-    print('Dealt cards in game #' + str(game_id))
+    if app.debug:
+        print('Dealt cards in game #' + str(game_id))
     emit(
         "refresh_game_table",
         {
@@ -272,18 +284,20 @@ def deal_cards(game_id):
 
 
 @socketio.on('make_bet', namespace='/game')
-def make_bet(game_id, hand_id, actor, bet_size, next_betting_player):
-    print('Player "' + str(actor) + '" made bet of size: ' + str(bet_size) + ' in hand #' + str(hand_id) + ' of game #' + str(game_id))
+def make_bet(game_id, hand_id, actor, bet_size, is_last_bet, next_acting_player):
+    if app.debug:
+        print('Player "' + str(actor) + '" made bet of size: ' + str(bet_size) + ' in hand #' + str(hand_id) + ' of game #' + str(game_id))
     emit(
         "refresh_game_table",
         {
             'eventCategory': 'game',
             'event': 'make bet',
             'gameId': game_id,
-            'hadnId': hand_id,
+            'handId': hand_id,
             'actor': actor,
             'betSize': bet_size,
-            'nextPlayerToBet': next_betting_player
+            'nextActingPlayer': next_acting_player,
+            'isLastPlayerToBet': is_last_bet
         },
         json=True,
         # to=room_id,
@@ -291,18 +305,70 @@ def make_bet(game_id, hand_id, actor, bet_size, next_betting_player):
     )
 
 
-@socketio.on('next_turn', namespace='/game')
-def next_turn(game_id, hand_id, actor):
-    print('Next turn in game #' + str(game_id))
+@socketio.on('put_card', namespace='/game')
+def next_turn(game_id, hand_id, actor, cards_on_table, took_player, next_player, is_last_card_in_hand):
+    if app.debug:
+        print('Next turn in game #' + str(game_id))
     emit(
         "refresh_game_table",
         {
             'eventCategory': 'game',
-            'event': 'next turn',
+            'event': 'put card',
             'gameId': game_id,
-            'actor': actor
+            'actor': actor,
+            'cardsOnTable': cards_on_table,
+            'tookPlayer': took_player,
+            'nextActingPlayer': next_player,
+            'isLastCardInHand': is_last_card_in_hand
         },
         json=True,
         # to=room_id,
         broadcast=True
+    )
+
+
+@socketio.on('finish_game_in_room', namespace='/game')
+def finish_game(actor, game_id, room_id):
+    if app.debug:
+        print('Game #' + str(game_id) + ' finished in room #' + str(room_id))
+    emit(
+        "refresh_game_table",
+        {
+            "eventCategory": "game",
+            "event": "finish",
+            "gameId": game_id,
+            "roomId": room_id,
+            'actor': actor
+        },
+        json=True,
+        # to=room_id,
+        broadcast=True,
+        namespace='/game'
+    )
+    emit(
+        "finish_game",
+        {
+            "eventCategory": "game",
+            "event": "finish",
+            "gameId": game_id,
+            "roomId": room_id,
+            'actor': actor
+        },
+        json=True,
+        # to=room_id,
+        broadcast=True,
+        namespace='/room'
+    )
+    emit(
+        'update_lobby',
+        {
+            'eventCategory': 'lobby',
+            'event': 'finish',
+            'roomId': room_id,
+            'newStatus': 'started'
+        },
+        json=True,
+        # to=room_id,
+        broadcast=True,
+        namespace='/lobby'
     )

@@ -531,6 +531,7 @@ class Hand(db.Model):
                     if shifted_position == 0:
                         shifted_position = game_players_cnt
                     next_player = Player.query.filter_by(game_id=self.game_id, position=shifted_position).first()
+                    print(next_player)
                     if not next_player:
                         # Error: player at calculated position not found
                         if app.debug:
