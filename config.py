@@ -39,4 +39,4 @@ class Config(object):
     UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER') or '/Users/akadymov/reactJS Apps/naegels-responsive-ui/public/img/profile-pics'
     MAX_CONTENT_SIZE = os.environ.get('MAX_CONTENT_SIZE') or 300 * 1024
     CONTENT_ALLOWED_FORMATS = os.environ.get('CONTENT_ALLOWED_FORMATS') or ['png']
-    MAX_ABOUT_ME_SYMBOLS = os.environ.get('MAX_ABOUT_ME_SYMBOLS') or 500
+    MAX_TEXT_SYMBOLS = os.environ.get('MAX_ABOUT_ME_SYMBOLS') or 500

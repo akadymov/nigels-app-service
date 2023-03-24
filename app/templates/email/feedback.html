@@ -7,6 +7,7 @@
     background: linear-gradient(90deg, rgba(0,62,0,1) 0%, rgba(0,156,0,1) 50%, rgba(0,93,0,1) 100%);
     padding: 20px
 ">
+    <p>New feedback message from Naegels app user <b style="color: darkViolet">{{ sender_name }}</b></p>
     <div style="
         background-color: hsl(0, 0%, 0%, 0.7);
         border: 1px solid #58f958;
@@ -14,10 +15,7 @@
         color: #58f958;
         padding: 5px;
     ">
-        <p>Dear <b>{{ user.username }}</b>,</p>
-        <p>You are successfully registered in Nagels Application.</p>
-        <p>You can start playing now!</p>
-        <p>Sincerely,</p>
-        <p>Nagels application team</p>
+        <p>{{ message }}</p>
     </div>
+    <p>Nagels application team</p>
 </div>

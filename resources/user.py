@@ -176,9 +176,9 @@ def edit_user(username):
     if preferred_lang not in app.config['ALLOWED_LANGS']:
         errors.append(
             {'field': 'preferredLang', 'message': 'Language {lang} is not supported!'.format(lang=preferred_lang)})
-    if len(about_me) >= app.config['MAX_ABOUT_ME_SYMBOLS']:
+    if len(about_me) >= app.config['MAX_TEXT_SYMBOLS']:
         errors.append(
-            {'field': 'aboutMe', 'message': 'About me section must be {max_symbols} symbols long'.format(max_symbols=app.config['MAX_ABOUT_ME_SYMBOLS'])}
+            {'field': 'aboutMe', 'message': 'About me section must be {max_symbols} symbols long'.format(max_symbols=app.config['MAX_TEXT_SYMBOLS'])}
         )
 
     if errors:

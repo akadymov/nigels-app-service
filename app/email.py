@@ -11,6 +11,8 @@ def send_async_email(app, msg):
 
 
 def send_email(subject, sender, recipients, text_body, html_body):
+    if app.debug:
+        print('Sending message with subject "' + str(subject) + '" from sender ' + str(sender) + ' to emails ' + str(recipients) + ')...')
     msg = Message(subject, sender=sender, recipients=recipients)
     msg.body = text_body
     msg.html = html_body
@@ -19,7 +21,7 @@ def send_email(subject, sender, recipients, text_body, html_body):
 
 def send_password_reset_email(user):
     token = user.get_reset_password_token()
-    send_email('[Nagels App] Reset Your Password',
+    send_email('[Naegels App] Reset Your Password',
                sender=app.config['ADMINS'][0],
                recipients=[user.email],
                text_body=render_template('email/reset_password.txt',
@@ -29,11 +31,24 @@ def send_password_reset_email(user):
 
 
 def send_registration_notification(user):
-    send_email('[Nagels App] Welcome letter',
+    send_email('[Naegels App] Welcome letter',
                sender=app.config['ADMINS'][0],
                recipients=[user.email],
                text_body=render_template('email/register.txt',
                                          user=user),
                html_body=render_template('email/register.html',
                                          user=user))
+
+def send_feedback(message, sender_email=None, sender_name=None):
+    if not sender_email:
+        sender_email = app.config['MAIL_USERNAME']
+    if not sender_name:
+        sender_name = 'Naegels app anonymous user'
+    send_email(
+        '[Naegels App] Feedback from user',
+        sender=(sender_name, sender_email),
+        recipients=app.config['ADMINS'],
+        text_body=render_template('email/feedback.txt', message=message, sender_name=sender_name),
+        html_body=render_template('email/feedback.html', message=message, sender_name=sender_name)
+    )
 
