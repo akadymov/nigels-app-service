@@ -286,8 +286,8 @@ def status(game_id):
                     if current_hand:
                         my_scores = HandScore.query.filter_by(player_id=requesting_user.id, hand_id=current_hand.id).first()
                         my_info['dealtCards'] = current_hand.get_user_current_hand(requesting_user)
-                        my_info['betSize'] = my_scores.bet_size if my_scores else 0
-                        my_info['tookTurns'] = my_scores.took_turns() if my_scores else 0
+                        my_info['betSize'] = my_scores.bet_size if my_scores else None
+                        my_info['tookTurns'] = my_scores.took_turns() if my_scores else None
                     else:
                         my_info['dealtCards'] = []
 
@@ -302,7 +302,7 @@ def status(game_id):
                     'username': user.username,
                     'position': current_hand.get_position(user),
                     'betSize': user_scores.bet_size if user_scores else None,
-                    'tookTurns': user_scores.took_turns() if user_scores else 0,
+                    'tookTurns': user_scores.took_turns() if user_scores else None,
                     'cardsOnHand': len(current_hand.get_user_current_hand(user)),
                     'relativePosition': game.get_player_relative_positions(requesting_user.id, player.user_id) if requesting_user_is_player else player.position
                 })

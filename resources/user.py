@@ -6,6 +6,8 @@ from app import app, db
 from app.models import User
 from datetime import datetime
 import re
+import os
+from werkzeug.utils import secure_filename
 from app.email import send_password_reset_email, send_registration_notification
 
 
@@ -287,3 +289,95 @@ def reset_password_form(token):
         })
 
     return 'Here comes reset password form (under construction)!'
+
+@user.route('{base_path}/user/<username>/profilepic'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
+def upload_profile_pic(username):
+    token = request.form.get('token')
+    username = username.casefold()
+    for f in request.form:
+        print(f)
+    print(token)
+    print(username)
+    requesting_user = User.verify_api_auth_token(token)
+    if requesting_user is None:
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Invalid username or authorization token!'
+                }
+            ]
+        }), 401
+
+    modified_user = User.query.filter_by(username=username).first()
+    if modified_user is None:
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'User {username} not found!'.format(username=username)
+                }
+            ]
+        }), 404
+    if modified_user != requesting_user:
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'You can update only your own profile picture ({username})!'.format(
+                        username=str(requesting_user.username))
+                }
+            ]
+        }), 401
+    if 'avatar' not in request.files:
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'No file in request!'
+                }
+            ]
+        }), 403
+    file = request.files['avatar']
+    if file.filename == '':
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'No file selected for uploading!'
+                }
+            ]
+        }), 403
+    file_extension = file.filename.rsplit('.', 1)[1].lower()
+    if file_extension not in app.config['CONTENT_ALLOWED_FORMATS']:
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Only {allowed_formats} files allowed!'.format(allowed_formats = app.config['CONTENT_ALLOWED_FORMATS'])
+                }
+            ]
+        }), 403
+    '''if 'content_length' not in file:
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'File size is not specified!'
+                }
+            ]
+        }), 403
+    if file.content_length > app.config['MAX_CONTENT_SIZE']:
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'File size exceeds limit of {limit}!'.format(limit = app.config('MAX_CONTENT_SIZE'))
+                }
+            ]
+        }), 403'''
+    filename = str(modified_user.username) + '.' + file_extension
+    try:
+        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+    except Exception:
+        return jsonify({
+            'errors': [
+                {
+                    'message': "Couldn't upload file"
+                }
+            ]
+        }), 403
+    return jsonify(200)

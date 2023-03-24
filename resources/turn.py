@@ -286,12 +286,16 @@ def put_card(game_id, hand_id, card_id):
                             else:
                                 error_msg = 'You cannot leak trumps!'   # leaking trumps is not allowed if you have another option
             else:
+                suitable_cards = []
                 for card_on_hand in player_current_hand:
                     if card_on_hand[-1:].casefold() == turn_suit:
                         player_has_turn_suit = True
+                        suitable_cards.append(card_on_hand)
                 if app.debug:
                     print('player_has_turn_suit:    ' + str(player_has_turn_suit))
-                if player_has_turn_suit:
+                if turn_suit == hand_trump and suitable_cards == ['J' + hand_trump]:
+                    status_code = 200                               # putting card of non trump suit in trump suited turn is allowed if the only remaining trump on hand is J
+                elif player_has_turn_suit:
                     error_msg = 'You should put card with following suits: {turn_suit}, {hand_trump}!'.format(
                         turn_suit = turn_suit,
                         hand_trump = hand_trump

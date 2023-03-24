@@ -36,5 +36,6 @@ class Config(object):
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME') or 'nigelsappservice@gmail.com'
     MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD') or 'ler123LM'
     ADMINS = ['nigelsappservice@gmail.com', 'akhmed.kadymov@gmail.com']
-    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER')
-    MAX_CONTENT_SIZE = os.environ.get('MAX_CONTENT_SIZE')
+    UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER') or '/Users/akadymov/reactJS Apps/naegels-responsive-ui/public/img/profile-pics'
+    MAX_CONTENT_SIZE = os.environ.get('MAX_CONTENT_SIZE') or 300 * 1024
+    CONTENT_ALLOWED_FORMATS = os.environ.get('CONTENT_ALLOWED_FORMATS') or ['png']
