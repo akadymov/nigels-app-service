@@ -86,7 +86,6 @@ def create_user():
 
 
 @user.route('{base_path}/user/<username>'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
-@cross_origin()
 def get_user(username):
     username = username.casefold()
     user = User.query.filter_by(username=username).first()
@@ -98,6 +97,7 @@ def get_user(username):
                 }
             ]
         }), 404
+
     return jsonify({
         'username': user.username,
         'email': user.email,
@@ -164,33 +164,26 @@ def edit_user(username):
             ]
         }), 401
 
-    email = request.json.get('email') or modified_user.email
-    about_me = request.json.get('aboutMe') or modified_user.about_me
-    preferred_lang = request.json.get('preferredLang') or modified_user.preferred_language
+    email = request.json.get('email')
+    preferred_lang = request.json.get('preferredLang') or app.config['DEFAULT_LANG']
+    about_me = request.json.get('aboutMe')
+    errors = []
     if not re.match(app.config['EMAIL_REGEXP'], email):
+        errors.append({'field': 'email', 'message': 'Bad email!'})
+    email_user = User.query.filter_by(email=email).first()
+    if email_user is not None and email_user != modified_user:
+        errors.append({'field': 'email', 'message': 'User with email {email} already exists!'.format(email=email)})
+    if preferred_lang not in app.config['ALLOWED_LANGS']:
+        errors.append(
+            {'field': 'preferredLang', 'message': 'Language {lang} is not supported!'.format(lang=preferred_lang)})
+    if len(about_me) >= app.config['MAX_ABOUT_ME_SYMBOLS']:
+        errors.append(
+            {'field': 'aboutMe', 'message': 'About me section must be {max_symbols} symbols long'.format(max_symbols=app.config['MAX_ABOUT_ME_SYMBOLS'])}
+        )
+
+    if errors:
         return jsonify({
-            'errors': [
-                {
-                    'message': 'Invalid email!'
-                }
-            ]
-        }), 400
-    conflict_user = User.query.filter_by(email=email).first()
-    if conflict_user is not None and conflict_user != modified_user:
-        return jsonify({
-            'errors': [
-                {
-                    'message': 'User with email {email} already exists!'.format(email=email)
-                }
-            ]
-        }), 400
-    if preferred_lang not in ['ru', 'en']:
-        return jsonify({
-            'errors': [
-                {
-                    'message': 'Language {lang} is not supported!'.format(lang=preferred_lang)
-                }
-            ]
+            'errors': errors
         }), 400
 
     modified_user.email = email.casefold()
@@ -214,24 +207,39 @@ def edit_user(username):
 def send_password_recovery():
 
     email = request.json.get('email')
+    username = request.json.get('username')
+    if app.debug:
+        print(email)
+        print(username)
+    errors = []
+    err = False
     if not email:
+        err = True
+    if not username:
+        err = True
+    requesting_user = None
+    if username and email:
+        requesting_user = User.query.filter_by(username=username).first()
+    if not requesting_user:
+        err = True
+    elif requesting_user.email != email:
+        err = True
+
+    if err:
         return jsonify({
             'errors': [
                 {
-                    'message': 'Invalid email!'
-                }
-            ]
-        }), 400
-    user = User.query.filter_by(email=email).first()
-    if not user:
-        return jsonify({
-            'errors': [
+                    'field': 'username',
+                    'message': 'Invalid username or password'
+                },
                 {
-                    'message': 'Invalid email!'
+                    'field': 'email',
+                    'message': 'Invalid username or password'
                 }
             ]
         }), 400
-    send_password_reset_email(user)
+
+    send_password_reset_email(requesting_user)
 
     return jsonify('Password recovery link is sent!'), 200
 
@@ -240,35 +248,64 @@ def send_password_recovery():
 @cross_origin()
 def reset_password():
 
-    new_password = request.json.get('new_password')
+    new_password = request.json.get('newPassword')
+    password_repeat = request.json.get('repeatPassword')
     token = request.json.get('token')
-    if not re.match(app.config['PASSWORD_REGEXP'], new_password):
+    requesting_user = User.verify_reset_password_token(token)
+    if not requesting_user:
         return jsonify({
             'errors': [
                 {
-                    'message': app.config['PASSWORD_REQUIREMENTS']
+                    'field': 'newPassword',
+                    'message': 'Invalid reset password token!'
+                },
+                {
+                    'field': 'repeatPassword',
+                    'message': 'Invalid reset password token!'
                 }
             ]
-        }), 400
-    user = User.verify_reset_password_token(token)
-    if not user:
+        }), 401
+    errors = []
+    if requesting_user is None:
         return jsonify({
             'errors': [
                 {
-                    'message': 'Invalid temporary token!'
+                    'field': 'newPassword',
+                    'message': 'Invalid reset password token!'
+                },
+                {
+                    'field': 'repeatPassword',
+                    'message': 'Invalid reset password token!'
                 }
             ]
-        }), 403
+        }), 401
     if not new_password:
+        errors.append({
+            'field': 'newPassword',
+            'message': 'New password is missing!'
+        })
+    if not password_repeat:
+        errors.append({
+            'field': 'repeatPassword',
+            'message': 'Password confirmation is missing!'
+        })
+    if new_password != password_repeat:
+        errors.append({
+            'field': 'repeatPassword',
+            'message': 'Password confirmation does not match!'
+        })
+    if not re.match(app.config['PASSWORD_REGEXP'], new_password):
+        errors.append({
+            'field': 'newPassword',
+            'message': app.config['PASSWORD_REQUIREMENTS']
+        })
+
+    if errors:
         return jsonify({
-            'errors': [
-                {
-                    'message': app.config['PASSWORD_REQUIREMENTS']
-                }
-            ]
+            'errors': errors
         }), 400
 
-    user.set_password(new_password)
+    requesting_user.set_password(new_password)
     db.session.commit()
 
     return jsonify('New password is saved!'), 200
@@ -289,6 +326,69 @@ def reset_password_form(token):
         })
 
     return 'Here comes reset password form (under construction)!'
+
+
+@user.route('{base_path}/user/password/new'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@cross_origin()
+def new_password():
+    current_password = request.json.get('currentPassword')
+    token = request.json.get('token')
+    new_password = request.json.get('newPassword')
+    password_repeat = request.json.get('passwordRepeat')
+    requesting_user = User.verify_api_auth_token(token)
+    errors = []
+    if requesting_user is None:
+        return jsonify({
+            'errors': [
+                {
+                    'message': 'Invalid username or authorization token!'
+                }
+            ]
+        }), 401
+    if not current_password:
+        errors.append({
+            'field': 'newPassword',
+            'message': 'Incorrect current password!'
+        })
+    if not new_password:
+        errors.append({
+            'field': 'newPassword',
+            'message': 'New password is missing!'
+        })
+    if not password_repeat:
+        errors.append({
+            'field': 'passwordRepeat',
+            'message': 'Password confirmation is missing!'
+        })
+    if new_password != password_repeat:
+        errors.append({
+            'field': 'passwordRepeat',
+            'message': 'Password confirmation does not match!'
+        })
+    if not requesting_user.check_password(current_password):
+        errors.append({
+            'field': 'currentPassword',
+            'message': 'Incorrect current password!'
+        })
+    if not re.match(app.config['PASSWORD_REGEXP'], new_password):
+        errors.append({
+            'field': 'newPassword',
+            'message': app.config['PASSWORD_REQUIREMENTS']
+        })
+
+    if errors:
+        return jsonify({
+            'errors': errors
+        }), 400
+    else:
+        if app.debug:
+            print('setting new password')
+            print(new_password)
+        requesting_user.set_password(new_password)
+        db.session.commit()
+
+        return jsonify('New password is saved!'), 200
+
 
 @user.route('{base_path}/user/<username>/profilepic'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
 @cross_origin()

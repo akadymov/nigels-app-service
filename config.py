@@ -30,12 +30,13 @@ class Config(object):
     MIN_PLAYER_TO_START = os.environ.get('MIN_PLAYER_TO_START') or 2
     MAX_PLAYER_TO_START = os.environ.get('MAX_PLAYER_TO_START') or 10
     MAIL_SERVER = os.environ.get('MAIL_SERVER') or 'smtp.gmail.com'
-    MAIL_PORT = int(os.environ.get('MAIL_PORT') or 587)
-    MAIL_USE_TLS = os.environ.get('MAIL_USE_TLS') or True
-    MAIL_USE_SSL = os.environ.get('MAIL_USE_SSL') or False
+    MAIL_PORT = int(os.environ.get('MAIL_PORT') or 465)
+    MAIL_USE_TLS = False # os.environ.get('MAIL_USE_TLS')
+    MAIL_USE_SSL = True # os.environ.get('MAIL_USE_SSL')
     MAIL_USERNAME = os.environ.get('MAIL_USERNAME') or 'nigelsappservice@gmail.com'
-    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD') or 'ler123LM'
+    MAIL_PASSWORD = os.environ.get('MAIL_PASSWORD') or 'ftriivstiomjrjbh'
     ADMINS = ['nigelsappservice@gmail.com', 'akhmed.kadymov@gmail.com']
     UPLOAD_FOLDER = os.environ.get('UPLOAD_FOLDER') or '/Users/akadymov/reactJS Apps/naegels-responsive-ui/public/img/profile-pics'
     MAX_CONTENT_SIZE = os.environ.get('MAX_CONTENT_SIZE') or 300 * 1024
     CONTENT_ALLOWED_FORMATS = os.environ.get('CONTENT_ALLOWED_FORMATS') or ['png']
+    MAX_ABOUT_ME_SYMBOLS = os.environ.get('MAX_ABOUT_ME_SYMBOLS') or 500

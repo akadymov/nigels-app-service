@@ -83,12 +83,8 @@ def bet(game_id, hand_id):
     # "Someone should stay unhappy" (rule name)
     made_bets = h.get_sum_of_bets()
 
-    hs = HandScore(player_id=requesting_user.id, hand_id=hand_id, bet_size=bet_size)
-    db.session.add(hs)
-    db.session.commit()
-
     bets_count = HandScore.query.filter_by(hand_id=hand_id).count()
-    is_last_bet = bets_count == Player.query.filter_by(game_id=game_id).count()
+    is_last_bet = bets_count == Player.query.filter_by(game_id=game_id).count() - 1
     if is_last_bet and bet_size + made_bets == h.cards_per_player:
         return jsonify({
             'errors': [
@@ -97,6 +93,10 @@ def bet(game_id, hand_id):
                 }
             ]
         }), 400
+
+    hs = HandScore(player_id=requesting_user.id, hand_id=hand_id, bet_size=bet_size)
+    db.session.add(hs)
+    db.session.commit()
 
     next_player = h.next_acting_player()
 
