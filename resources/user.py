@@ -104,7 +104,8 @@ def get_user(username):
         'preferredLang': user.preferred_language,
         'registered': user.registered,
         'lastSeen': user.last_seen,
-        'aboutMe': user.about_me
+        'aboutMe': user.about_me,
+        'connectedRoomId': user.get_connected_room_id()
     }), 200
 
 

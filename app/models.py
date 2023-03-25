@@ -342,8 +342,11 @@ class Hand(db.Model):
         else:
             return None
 
-    def get_user_initial_hand(self, user):
-        possible_suits_ordered = ['d', 's', 'h', 'c']
+    def get_user_initial_hand(self, user, trump=None):
+        possible_suits_ordered = ['s', 'c', 'h', 'd']
+        if trump:
+            possible_suits_ordered.remove(trump)
+            possible_suits_ordered.append(trump)
         initial_hand = []
         for suit in possible_suits_ordered:
             player_cards_suited = DealtCards.query.filter_by(hand_id=self.id, player_id=user.id, card_suit=suit).all()
