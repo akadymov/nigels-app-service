@@ -1,7 +1,8 @@
 from flask import jsonify, Blueprint, request
 from flask_cors import cross_origin
-from app import app
+from app import app, db
 from app.email import send_feedback
+from app.models import Stats, User
 
 
 general = Blueprint('general', __name__)
@@ -68,3 +69,26 @@ def feedback():
     send_feedback(message=message, sender_name=sender_name, sender_email=sender_email)
     return jsonify({'message': 'Feedback message sent'}), 200
 
+
+@general.route('{base_path}/ratings'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+@cross_origin()
+def ratings():
+    ratings = Stats.query.filter(Stats.games_played>0).all()
+    ratings_final = []
+    if ratings:
+        for rating in ratings:
+            user = User.query.filter_by(id=rating.user_id).first()
+            if user:
+                ratings_final.append({
+                    'username': user.username,
+                    'gamesPlayed': rating.games_played,
+                    'gamesWon': rating.games_won,
+                    'winRatio': rating.games_won / rating.games_played,
+                    'sumOfBets': rating.sum_of_bets,
+                    'bonuses': rating.bonuses,
+                    'totalScore': rating.total_score,
+                    'avgScore': rating.total_score / rating.games_played,
+                    'avgBonuses': rating.bonuses / rating.games_played,
+                    'avgBetSize': rating.sum_of_bets / rating.games_played
+                })
+    return ratings_final

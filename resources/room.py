@@ -3,7 +3,7 @@
 from flask import url_for, request, jsonify, Blueprint
 from flask_cors import cross_origin
 from app import app, db
-from app.models import User, Room, Player
+from app.models import User, Room, Stats
 from datetime import datetime
 from sqlalchemy import text
 
@@ -18,11 +18,15 @@ def generate_users_json(target_room, connected_users):
             is_ready = True
         else:
             is_ready = target_room.if_user_is_ready(u)
+        user_stats = u.get_stats()
+        win_ratio = 0
+        if user_stats:
+            win_ratio = user_stats['winRatio']
         users_json.append({
             'id': u.id,
             'username': u.username,
             'ready': is_ready,
-            'rating': 0
+            'winRatio': win_ratio
         })
     return users_json
 
