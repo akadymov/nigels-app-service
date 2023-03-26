@@ -88,13 +88,14 @@ def deal_cards(game_id):
 
         # defining number of cards to be dealt in new hand
         single_card_closed_hands = Hand.query.filter_by(game_id=game_id, is_closed=1, cards_per_player=1).all()
-        if len(single_card_closed_hands) == 2:
-            if last_closed_hand.cards_per_player == 1:
-                cards_per_player = 1
-            else:
-                cards_per_player = last_closed_hand.cards_per_player + 1
-        else:
+        if len(single_card_closed_hands) == 0:
             cards_per_player = last_closed_hand.cards_per_player - 1
+        elif len(single_card_closed_hands) == 1 and last_closed_hand.cards_per_player == 1:
+            cards_per_player = 1
+        elif len(single_card_closed_hands) == 2:
+            cards_per_player = last_closed_hand.cards_per_player + 1
+        else:
+            print('Cannot calculate cards per player count in hand #' + str(new_hand_id) + ' of game #' + str(game_id))
 
         # next starting player is the one who was second is previous hand
         starting_player = last_closed_hand.get_player_by_pos(2)
@@ -182,9 +183,9 @@ def get_hand_cards(game_id, hand_id):
         }), 403
 
     if str(request.args.get('burned')).lower() == 'y':
-        cards = h.get_user_initial_hand(requesting_user)
+        cards = h.get_user_initial_hand(requesting_user, h.trump)
     else:
-        cards = h.get_user_current_hand(requesting_user)
+        cards = h.get_user_current_hand(requesting_user, h.trump)
 
     return jsonify({
         'gameId': game_id,

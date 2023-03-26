@@ -3,7 +3,7 @@
 from flask import url_for, request, jsonify, Blueprint, Response
 from flask_cors import cross_origin
 from app import app, db
-from app.models import User
+from app.models import User, Token, Player, Game
 from datetime import datetime
 import re
 import os
@@ -98,6 +98,7 @@ def get_user(username):
             ]
         }), 404
 
+
     return jsonify({
         'username': user.username,
         'email': user.email,
@@ -105,7 +106,8 @@ def get_user(username):
         'registered': user.registered,
         'lastSeen': user.last_seen,
         'aboutMe': user.about_me,
-        'connectedRoomId': user.get_connected_room_id()
+        'connectedRoomId': user.get_connected_room_id(),
+        'stats': user.game_stats()
     }), 200
 
 
@@ -212,7 +214,6 @@ def send_password_recovery():
     if app.debug:
         print(email)
         print(username)
-    errors = []
     err = False
     if not email:
         err = True
@@ -306,7 +307,9 @@ def reset_password():
             'errors': errors
         }), 400
 
+    saved_token = Token.query.filter_by(token=token).first()
     requesting_user.set_password(new_password)
+    saved_token.status='used'
     db.session.commit()
 
     return jsonify('New password is saved!'), 200

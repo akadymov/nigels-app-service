@@ -99,14 +99,23 @@ class User(UserMixin, db.Model):
         return user
 
     def get_reset_password_token(self, expires_in=600):
-        return jwt.encode(
+        new_token = jwt.encode(
             {'reset_password': self.id, 'exp': time() + expires_in},
             app.config['SECRET_KEY'],
             algorithm='HS256'
         )
+        new_token_entry = Token(token=new_token, status='active', type='reset_password')
+        db.session.add(new_token_entry)
+        db.session.commit()
+        return new_token
 
     @staticmethod
     def verify_reset_password_token(token):
+        saved_token = Token.query.filter_by(token=token).first()
+        if not saved_token:
+            return
+        if saved_token.status != 'active':
+            return
         try:
             id = jwt.decode(token, app.config['SECRET_KEY'],
                             algorithms=['HS256'])['reset_password']
@@ -136,6 +145,48 @@ class User(UserMixin, db.Model):
                 ]
             }), 401
         return requesting_user
+
+    def game_stats(self):
+        player_entries = Player.query.filter_by(user_id=self.id).all()
+        if not player_entries:
+            return None
+        played_games = 0
+        games_won = 0
+        played_hands = 0
+        sum_of_bets = 0
+        total_score = 0
+        bonuses = 0
+        for entry in player_entries:
+            if app.debug:
+                print('Building user stats: checking game #' + str(entry.game_id))
+            game = Game.query.filter_by(id=entry.game_id).first()
+            if game:
+                if game.winner_id is not None and game.finished is not None:
+                    print('Building user stats: game #' + str(entry.game_id) + ' is finished')
+                    played_games += 1
+                    played_hands += Hand.query.filter_by(game_id=game.id, is_closed=1).count()
+                    if game.winner_id == self.id:
+                        games_won += 1
+                    game_scores = game.get_user_score(self.id)
+                    sum_of_bets += game_scores['sum_of_bets']
+                    bonuses += game_scores['bonuses']
+                    total_score += game_scores['total_score']
+        if player_entries==0 or played_hands==0:
+            return None
+        avg_score = total_score / played_games
+        avg_bonuses = bonuses / played_games
+        avg_bet_size = sum_of_bets / played_hands
+        return {
+            'gamesPlayed': played_games,
+            'winRatio': games_won / played_games,
+            'handsPlayed': played_hands,
+            'sumOfBets': sum_of_bets,
+            'bonuses': bonuses,
+            'totalScore': total_score,
+            'avgScore': avg_score,
+            'avgBonuses': avg_bonuses,
+            'avgBetSize': avg_bet_size
+        }
 
 
 @login.user_loader
@@ -204,6 +255,7 @@ class Game(db.Model):
     started = db.Column(db.DateTime, nullable=True, default=datetime.utcnow())
     finished = db.Column(db.DateTime, nullable=True, default=None)
     winner_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=True, index=True)
+    autodeal = db.Column(db.Integer, default=0)
     hands = db.relationship('Hand', backref='game', lazy='dynamic')
 
     def __repr__(self):
@@ -288,6 +340,33 @@ class Game(db.Model):
             'rows': rows
         }
 
+    def get_user_score(self, user_id):
+        player_entry = Player.query.filter_by(game_id=self.id, user_id=user_id).first()
+        if not player_entry:
+            return None
+        played_hands = Hand.query.filter_by(game_id=self.id).all()
+        if not played_hands:
+            return None
+        hands_played = len(played_hands)
+        sum_of_bets = 0
+        total_score = 0
+        bonuses = 0
+        for hand in played_hands:
+            hand_score = HandScore.query.filter_by(hand_id=hand.id, player_id=player_entry.user_id).first()
+            if hand_score:
+                if hand_score.bet_size:
+                    sum_of_bets += hand_score.bet_size
+                if hand_score.bonus:
+                    bonuses += 1
+                if hand_score.score:
+                    total_score += hand_score.score
+        return {
+            'hands_played': hands_played,
+            'sum_of_bets': sum_of_bets,
+            'bonuses': bonuses,
+            'total_score': total_score
+        }
+
     def get_player_relative_positions(self, source_player_id, required_player_id):
         source_player = Player.query.filter_by(game_id=self.id, user_id=source_player_id).first()
         if not source_player:
@@ -345,17 +424,61 @@ class Hand(db.Model):
     def get_user_initial_hand(self, user, trump=None):
         possible_suits_ordered = ['s', 'c', 'h', 'd']
         if trump:
+            if app.debug:
+                print('updating possible suits regarding trump (' + str(trump) + ')')
             possible_suits_ordered.remove(trump)
             possible_suits_ordered.append(trump)
+        if app.debug:
+            print(possible_suits_ordered)
         initial_hand = []
         for suit in possible_suits_ordered:
+            suit_cards = list()
             player_cards_suited = DealtCards.query.filter_by(hand_id=self.id, player_id=user.id, card_suit=suit).all()
             for card in player_cards_suited:
-                initial_hand.append(str(card.card_id) + card.card_suit)
+                if card.card_id == 'j':
+                    if card.card_suit == trump:
+                        card_index = 14
+                    else:
+                        card_index=11
+                elif card.card_id == 'q':
+                    if card.card_suit == trump:
+                        card_index = 10
+                    else:
+                        card_index = 12
+                elif card.card_id == 'k':
+                    if card.card_suit == trump:
+                        card_index = 11
+                    else:
+                        card_index = 13
+                elif card.card_id == 'a':
+                    if card.card_suit == trump:
+                        card_index = 12
+                    else:
+                        card_index = 14
+                elif card.card_id == 't':
+                    if card.card_suit == trump:
+                        card_index = 9
+                    else:
+                        card_index = 10
+                elif card.card_id == '9':
+                    if card.card_suit == trump:
+                        card_index = 13
+                    else:
+                        card_index = 9
+                else:
+                    card_index = int(card.card_id)
+
+                suit_cards.append({
+                    'card_index': card_index,
+                    'card': str(card.card_id) + card.card_suit
+                })
+            for card in sorted(suit_cards, key=lambda c: c['card_index']):
+                initial_hand.append(card['card'])
+
         return initial_hand
 
-    def get_user_current_hand(self, user):
-        initial_cards = self.get_user_initial_hand(user)
+    def get_user_current_hand(self, user, trump=None):
+        initial_cards = self.get_user_initial_hand(user, trump)
         burned_cards = TurnCard.query.filter_by(hand_id=self.id, player_id=user.id)
         burned_cards_list = []
         for card in burned_cards:
@@ -469,8 +592,11 @@ class Hand(db.Model):
 
     def next_acting_player(self):
 
-        # next acting player defining logic (schematically described in https://drive.google.com/file/d/1ApaKjPUeCXoCUVF_v5ui6uddn8flp85i/view?usp=sharing
+        if self.is_closed:
+            return None
 
+
+        # next acting player defining logic (schematically described in https://drive.google.com/file/d/1ApaKjPUeCXoCUVF_v5ui6uddn8flp85i/view?usp=sharing
         # calculating position shift due to made actions in current turn
         hand_made_bets = HandScore.query.filter_by(hand_id=self.id).count()
         current_turn = self.get_current_turn()
@@ -484,11 +610,29 @@ class Hand(db.Model):
             return None
 
         # if bets are not made in hand position shift is defined with made bets
-        if hand_made_bets != game_players_cnt:
+        if hand_made_bets == 0:
             if app.debug:
-                print('Bets are not made in hand position: shift is defined with made bets')
-            position_shift = hand_made_bets
+                print('No bets are made in hand: shift is defined with made bets')
+            position_shift = Hand.query.filter_by(game_id=self.game_id).count()
             shifted_position = (1 + position_shift) % game_players_cnt
+            if app.debug:
+                print('shifted_position: ' + str(shifted_position))
+            if shifted_position == 0:
+                shifted_position = game_players_cnt
+            next_player = Player.query.filter_by(game_id=self.game_id, position=shifted_position).first()
+            if not next_player:
+                # Error: player at calculated position not found
+                if app.debug:
+                    print('player at calculated position (' + str(shifted_position) + ') not found')
+                return None
+            return User.query.filter_by(id=next_player.user_id).first()
+        elif hand_made_bets != game_players_cnt:
+            if app.debug:
+                print('Bets are not made in hand: shift is defined with made bets')
+            position_shift = hand_made_bets + Hand.query.filter_by(game_id=self.game_id).count()
+            shifted_position = (1 + position_shift) % game_players_cnt
+            if app.debug:
+                print('shifted_position: ' + str(shifted_position))
             if shifted_position == 0:
                 shifted_position = game_players_cnt
             next_player = Player.query.filter_by(game_id=self.game_id, position=shifted_position).first()
@@ -502,7 +646,7 @@ class Hand(db.Model):
         # if bets are made in hand position shift is defined with put cards in turn
         else:
             if app.debug:
-                print('Bets are made in hand position: shift is defined with put cards in turn')
+                print('Bets are made in hand: shift is defined with put cards in turn')
             if current_turn:
                 if app.debug:
                     print('Card putting player is NOT first in this turn: position shift is NOT zero')
@@ -563,7 +707,6 @@ class Hand(db.Model):
                     if shifted_position == 0:
                         shifted_position = game_players_cnt
                     next_player = Player.query.filter_by(game_id=self.game_id, position=shifted_position).first()
-                    print(next_player)
                     if not next_player:
                         # Error: player at calculated position not found
                         if app.debug:
@@ -677,7 +820,6 @@ class Hand(db.Model):
         return result
 
 
-
 class DealtCards(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     hand_id = db.Column(db.Integer, db.ForeignKey('hand.id'), nullable=False)
@@ -784,3 +926,12 @@ class TurnCard(db.Model):
     def __repr__(self):
         return "<Card {}{} in hand {} put by player {}>".format(self.card_id, self.card_suit, self.hand_id, User.query.filter_by(id=self.player_id).first().username)
 
+class Token(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    token = db.Column(db.String(150), nullable=False)
+    type = db.Column(db.String(10), nullable=False)
+    status = db.Column(db.String(10), nullable=False)
+
+    def burn(self):
+        self.status = 'used'
+        db.session.commit()

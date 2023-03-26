@@ -199,7 +199,7 @@ def put_card(game_id, hand_id, card_id):
 
     card_id = card_id.casefold()
 
-    player_current_hand = h.get_user_current_hand(requesting_user)
+    player_current_hand = h.get_user_current_hand(requesting_user, h.trump)
     if card_id not in player_current_hand:
         return jsonify({
             'errors': [
@@ -277,7 +277,7 @@ def put_card(game_id, hand_id, card_id):
                                 if card_on_hand != card_id and \
                                     card_on_hand[-1:].casefold() == hand_trump and \
                                     np.where(trump_hierarchy==card_on_hand[:1].casefold())[0][0] > np.where(trump_hierarchy==highest_turn_card['id'])[0][0] and \
-                                    card_on_hand[:1].casefold() != 'J':
+                                    card_on_hand[:1].casefold() != 'j':
                                         all_remaining_cards_are_lower_trumps = False
                             if app.debug:
                                 print('all_remaining_cards_are_lower_trumps:    ' + str(all_remaining_cards_are_lower_trumps))
@@ -290,10 +290,11 @@ def put_card(game_id, hand_id, card_id):
                 for card_on_hand in player_current_hand:
                     if card_on_hand[-1:].casefold() == turn_suit:
                         player_has_turn_suit = True
+                        print(card_on_hand)
                         suitable_cards.append(card_on_hand)
                 if app.debug:
                     print('player_has_turn_suit:    ' + str(player_has_turn_suit))
-                if turn_suit == hand_trump and suitable_cards == ['J' + hand_trump]:
+                if turn_suit == hand_trump and suitable_cards == ['j' + hand_trump]:
                     status_code = 200                               # putting card of non trump suit in trump suited turn is allowed if the only remaining trump on hand is J
                 elif player_has_turn_suit:
                     error_msg = 'You should put card with following suits: {turn_suit}, {hand_trump}!'.format(

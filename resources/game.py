@@ -36,7 +36,6 @@ def game_score(game_id):
 @game.route('{base_path}/game/start'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
 @cross_origin()
 def start():
-
     token = request.json.get('token')
     if token is None:
         return jsonify({
@@ -83,7 +82,10 @@ def start():
                     }
                 ]
             }), 403
-    g = Game(room=hosted_room)
+    autodeal = 0
+    if request.json.get('autodeal'):
+        autodeal=request.json.get('autodeal')
+    g = Game(room=hosted_room, autodeal=autodeal)
     db.session.add(g)
     db.session.commit()
 
@@ -98,6 +100,7 @@ def start():
     return jsonify({
         'gameId': g.id,
         'room': g.room.room_name,
+        'autodeal': autodeal == 1,
         'host': g.room.host.username,
         'status': 'active' if g.finished is None else 'finished',
         'started': g.started,
@@ -285,7 +288,7 @@ def status(game_id):
                     my_info['position'] = player.position
                     if current_hand:
                         my_scores = HandScore.query.filter_by(player_id=requesting_user.id, hand_id=current_hand.id).first()
-                        my_info['dealtCards'] = current_hand.get_user_current_hand(requesting_user)
+                        my_info['dealtCards'] = current_hand.get_user_current_hand(requesting_user, current_hand.trump)
                         my_info['betSize'] = my_scores.bet_size if my_scores else None
                         my_info['tookTurns'] = my_scores.took_turns() if my_scores else None
                     else:
@@ -375,6 +378,7 @@ def status(game_id):
         'nextActingPlayer': next_player.username if next_player else None,
         'host': room.host.username,
         'startedHands': [],
+        'autodeal': game.autodeal == 1,
         'gameScores': game.get_scores(),
         'actionMessage': action_msg,
         'myInHandInfo': my_info,
