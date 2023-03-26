@@ -3,7 +3,7 @@
 from flask import url_for, request, jsonify, Blueprint
 from flask_cors import cross_origin
 from app import app, db
-from app.models import User, Game, Player, Hand, HandScore, Turn, DealtCards, TurnCard
+from app.models import User, Game, Player, Hand, HandScore, Turn, DealtCards, TurnCard, Stats
 from datetime import datetime
 import numpy as np
 
@@ -358,8 +358,42 @@ def put_card(game_id, hand_id, card_id):
             if g.all_hands_played():
                 g.finished = datetime.utcnow()
                 game_scores = g.get_scores()
+                top_score = 0
+                winner_id = None
+                for player in g.players:
+                    user = User.query.filter_by(id=player.id)
+                    player_scores = user.calc_game_stats(game_id=game_id)
+                    if player_scores:
+                        if player_scores['totalScore'] >= top_score:
+                            top_score = player_scores['totalScore']
+                            winner_id = player.user_id
+                g.winner_id = winner_id
+
 
     db.session.commit()
+
+    for player in g.players:
+        user = User.query.filter_by(id=player.id)
+        player_scores = user.calc_game_stats(game_id=game_id)
+        if player_scores:
+            s = Stats.query.filter_by(user_id=user.id).first()
+            if not s:
+                s = Stats(
+                    user_id=user.id,
+                    games_played=player_scores['gamesPlayed'],
+                    games_won = player_scores['gamesWon'],
+                    sum_of_bets = player_scores['sumOfBets'],
+                    bonuses = player_scores['bonuses'],
+                    total_score = player_scores['totalScore']
+                )
+                db.session.add(s)
+            else:
+                s.games_played += player_scores['gamesPlayed']
+                s.games_won += player_scores['gamesWon']
+                s.sum_of_bets += player_scores['sumOfBets']
+                s.bonuses += player_scores['bonuses'],
+                s.total_score += player_scores['totalScore']
+            db.session.commit()
 
     cards_on_table = []
     for card in t.stroke_cards():

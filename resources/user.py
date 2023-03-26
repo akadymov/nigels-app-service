@@ -3,7 +3,7 @@
 from flask import url_for, request, jsonify, Blueprint, Response
 from flask_cors import cross_origin
 from app import app, db
-from app.models import User, Token, Player, Game
+from app.models import User, Token, Player, Game, Stats
 from datetime import datetime
 import re
 import os
@@ -98,7 +98,6 @@ def get_user(username):
             ]
         }), 404
 
-
     return jsonify({
         'username': user.username,
         'email': user.email,
@@ -107,7 +106,7 @@ def get_user(username):
         'lastSeen': user.last_seen,
         'aboutMe': user.about_me,
         'connectedRoomId': user.get_connected_room_id(),
-        'stats': user.game_stats()
+        'stats': user.get_stats()
     }), 200
 
 

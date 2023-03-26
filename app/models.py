@@ -146,8 +146,10 @@ class User(UserMixin, db.Model):
             }), 401
         return requesting_user
 
-    def game_stats(self):
+    def calc_game_stats(self, game_id=None):
         player_entries = Player.query.filter_by(user_id=self.id).all()
+        if game_id:
+            player_entries = Player.query.filter_by(user_id=self.id, game_id=game_id).all()
         if not player_entries:
             return None
         played_games = 0
@@ -178,6 +180,7 @@ class User(UserMixin, db.Model):
         avg_bet_size = sum_of_bets / played_hands
         return {
             'gamesPlayed': played_games,
+            'gamesWon': games_won,
             'winRatio': games_won / played_games,
             'handsPlayed': played_hands,
             'sumOfBets': sum_of_bets,
@@ -186,6 +189,22 @@ class User(UserMixin, db.Model):
             'avgScore': avg_score,
             'avgBonuses': avg_bonuses,
             'avgBetSize': avg_bet_size
+        }
+
+    def get_stats(self):
+        stats = Stats.query.filter_by(user_id=self.id).first()
+        if not stats:
+            return None
+        return {
+            'gamesPlayed': stats.games_played,
+            'gamesWon': stats.games_won,
+            'winRatio': stats.games_won / stats.games_played,
+            'sumOfBets': stats.sum_of_bets,
+            'bonuses': stats.bonuses,
+            'totalScore': stats.total_score,
+            'avgScore': stats.total_score / stats.games_played,
+            'avgBonuses': stats.bonuses / stats.games_played,
+            'avgBetSize': stats.sum_of_bets / stats.games_played
         }
 
 
@@ -935,3 +954,11 @@ class Token(db.Model):
     def burn(self):
         self.status = 'used'
         db.session.commit()
+
+class Stats(db.Model):
+    user_id = db.Column(db.Integer, primary_key=True)
+    games_played = db.Column(db.Integer, default=None)
+    games_won = db.Column(db.Integer, default=None)
+    total_score = db.Column(db.Integer, default=None)
+    sum_of_bets = db.Column(db.Integer, default=0)
+    bonuses = db.Column(db.Integer, default=0)
