@@ -279,6 +279,8 @@ def put_card(game_id, hand_id, card_id):
                                     np.where(trump_hierarchy==card_on_hand[:1].casefold())[0][0] > np.where(trump_hierarchy==highest_turn_card['id'])[0][0] and \
                                     card_on_hand[:1].casefold() != 'j':
                                         all_remaining_cards_are_lower_trumps = False
+                                if card_on_hand[-1:].casefold() != hand_trump:
+                                    all_remaining_cards_are_lower_trumps = False
                             if app.debug:
                                 print('all_remaining_cards_are_lower_trumps:    ' + str(all_remaining_cards_are_lower_trumps))
                             if all_remaining_cards_are_lower_trumps:
