@@ -3,11 +3,11 @@
 from flask import url_for, request, jsonify, Blueprint, Response
 from flask_cors import cross_origin
 from app import app, db
-from app.models import User, Token, Player, Game, Stats
+from app.models import User, Token
 from datetime import datetime
 import re
 import os
-from werkzeug.utils import secure_filename
+from werkzeug.datastructures import MultiDict
 from app.email import send_password_reset_email, send_registration_notification
 
 
@@ -396,12 +396,8 @@ def new_password():
 @user.route('{base_path}/user/<username>/profilepic'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
 @cross_origin()
 def upload_profile_pic(username):
-    token = request.form.get('token')
+    token = request.headers.get('Token')
     username = username.casefold()
-    for f in request.form:
-        print(f)
-    print(token)
-    print(username)
     requesting_user = User.verify_api_auth_token(token)
     if requesting_user is None:
         return jsonify({
@@ -411,6 +407,7 @@ def upload_profile_pic(username):
                 }
             ]
         }), 401
+
 
     modified_user = User.query.filter_by(username=username).first()
     if modified_user is None:
@@ -430,15 +427,17 @@ def upload_profile_pic(username):
                 }
             ]
         }), 401
-    if 'avatar' not in request.files:
+    '''if 'avatar' not in request.files:
         return jsonify({
             'errors': [
                 {
                     'message': 'No file in request!'
                 }
             ]
-        }), 403
+        }), 403'''
     file = request.files['avatar']
+    if app.debug:
+        print(file.filename)
     if file.filename == '':
         return jsonify({
             'errors': [
