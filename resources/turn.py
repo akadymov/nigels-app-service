@@ -373,7 +373,7 @@ def put_card(game_id, hand_id, card_id):
     db.session.commit()
 
     for player in g.players:
-        user = User.query.filter_by(id=player.id)
+        user = User.query.filter_by(id=player.id).first()
         player_scores = user.calc_game_stats(game_id=game_id)
         if player_scores:
             s = Stats.query.filter_by(user_id=user.id).first()

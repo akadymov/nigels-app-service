@@ -5,7 +5,6 @@ from flask_cors import cross_origin
 from app import app, db
 from app.models import User, Room, Stats
 from datetime import datetime
-from sqlalchemy import text
 
 
 room = Blueprint('room', __name__)
@@ -60,13 +59,23 @@ def get_list():
         rooms = Room.query.all()
     rooms_json = []
     for room in rooms:
-
+        time_delta_from_now = (datetime.utcnow() - room.created).total_seconds()
+        minutes_delta = round(time_delta_from_now / 60)
+        hours_delta = round(time_delta_from_now / 3600)
+        days_delta = round(time_delta_from_now / (3600 * 24))
+        time_ago_string = 'just now'
+        if days_delta > 0:
+            time_ago_string = str(days_delta) + ' days ago'
+        elif hours_delta > 0:
+            time_ago_string = str(hours_delta) + 'hrs ago'
+        elif minutes_delta > 0:
+            time_ago_string = str(minutes_delta) + ' min ago'
         rooms_json.append({
             'roomId': room.id,
             'roomName': room.room_name,
             'host': room.host.username,
             'status': room.current_status(),
-            'created': room.created,
+            'created': time_ago_string,
             'closed': room.closed,
             'connectedUsers': room.connected_users.count(),
             'connect': url_for('room.connect', room_id=room.id)
