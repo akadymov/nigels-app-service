@@ -197,6 +197,17 @@ def close_room(actor, room_id):
         namespace='/room',
         broadcast=True
     )
+    emit(
+        'update_lobby',
+        {
+            'eventCategory': 'lobby',
+            'event': 'close',
+            'roomId': room_id
+        },
+        # to=room_id,
+        namespace='/lobby',
+        broadcast=True
+    )
 
 
 @socketio.on('remove_room_from_lobby', namespace='/lobby')
