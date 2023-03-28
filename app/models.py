@@ -313,15 +313,22 @@ class Game(db.Model):
         return all_games_played
 
     def get_scores(self):
-        game_scores = {}
         played_hands = Hand.query.filter_by(game_id=self.id).all()
         players = self.players.all()
         headers = ['']
         rows = []
         total_score = {}
+        data_array = [{}]
         for player in players:
             total_score[player.username] = 0
             headers.append(str(player.username))
+            data_array.append({
+                'type': 'scores subtitle'
+            })
+        rows.append({
+            'id': 'subtitle',
+            'dataArray': data_array
+        })
         for hand in played_hands:
             data_array = [{
                 'type': 'hand id',
@@ -339,6 +346,14 @@ class Game(db.Model):
                         'score': hand_score.score
                     })
                     total_score[player.username] += hand_score.score if hand_score.score else 0
+                else:
+                    data_array.append({
+                        'type': 'score',
+                        'betSize': '',
+                        'tookTurns': '',
+                        'bonus': '',
+                        'score': ''
+                    })
             rows.append({
                 'id': str(hand.cards_per_player) + str(hand.trump),
                 'dataArray': data_array
@@ -581,20 +596,14 @@ class Hand(db.Model):
         return finished_hand_turns >= self.cards_per_player
 
     def get_current_turn(self, closed=False):
-        players_count = Player.query.filter_by(game_id=self.game_id).count()
         hand_turns = Turn.query.filter_by(hand_id=self.id).order_by(Turn.serial_no.desc()).all()
         if not hand_turns:
             return None
         if closed:
             return hand_turns[0]
         for ht in hand_turns:
-            if app.debug:
-                print('hand turn: #' + str(ht.id))
-            turn_cards_count = TurnCard.query.filter_by(turn_id=ht.id).count()
-            if turn_cards_count != players_count:
-                if app.debug:
-                    print(str(turn_cards_count) + ' cards were put out of ' + str(players_count))
-                return Turn.query.filter_by(id=ht.id).first()
+            if ht.took_user_id is None:
+                return ht
         return None
 
     def get_last_turn(self):
@@ -614,11 +623,16 @@ class Hand(db.Model):
         if self.is_closed:
             return None
 
-
         # next acting player defining logic (schematically described in https://drive.google.com/file/d/1ApaKjPUeCXoCUVF_v5ui6uddn8flp85i/view?usp=sharing
         # calculating position shift due to made actions in current turn
+        source_position = 1
         hand_made_bets = HandScore.query.filter_by(hand_id=self.id).count()
         current_turn = self.get_current_turn()
+        played_hands = Hand.query.filter_by(game_id=self.game_id, is_closed=1).count()
+        turn_put_cards = 0
+        print('current_turn is ' + str(current_turn))
+        if current_turn:
+            turn_put_cards = TurnCard.query.filter_by(turn_id=current_turn.id).count()
 
         # getting current players sequence
         game_players_cnt = Player.query.filter_by(game_id=self.game_id).count()
@@ -631,125 +645,59 @@ class Hand(db.Model):
         # if bets are not made in hand position shift is defined with made bets
         if hand_made_bets == 0:
             if app.debug:
-                print('No bets are made in hand: shift is defined with made bets and played hands')
-            position_shift = Hand.query.filter_by(game_id=self.game_id, is_closed=1).count()
-            shifted_position = (1 + position_shift) % game_players_cnt
-            if app.debug:
-                print('shifted_position: ' + str(shifted_position))
-            if shifted_position == 0:
-                shifted_position = game_players_cnt
-            next_player = Player.query.filter_by(game_id=self.game_id, position=shifted_position).first()
-            if not next_player:
-                # Error: player at calculated position not found
-                if app.debug:
-                    print('player at calculated position (' + str(shifted_position) + ') not found')
-                return None
-            return User.query.filter_by(id=next_player.user_id).first()
+                print('No bets are made in hand: shift is defined with played hands')
+            position_shift = played_hands
         elif hand_made_bets != game_players_cnt:
             if app.debug:
-                print('Bets are not made in hand: shift is defined with made bets')
-            position_shift = hand_made_bets + Hand.query.filter_by(game_id=self.game_id, is_closed=1).count()
-            shifted_position = (1 + position_shift) % game_players_cnt
-            if app.debug:
-                print('shifted_position: ' + str(shifted_position))
-            if shifted_position == 0:
-                shifted_position = game_players_cnt
-            next_player = Player.query.filter_by(game_id=self.game_id, position=shifted_position).first()
-            if not next_player:
-                # Error: player at calculated position not found
-                if app.debug:
-                    print('player at calculated position (' + str(shifted_position) + ') not found')
-                return None
-            return User.query.filter_by(id=next_player.user_id).first()
-
+                print('Bets are not made in hand: shift is defined with both made bets and played hands')
+            position_shift = hand_made_bets + played_hands
         # if bets are made in hand position shift is defined with put cards in turn
         else:
             if app.debug:
-                print('Bets are made in hand: shift is defined with put cards in turn')
-            if current_turn:
-                if app.debug:
-                    print('Card putting player is NOT first in this turn: position shift is NOT zero')
-                turn_put_cards = TurnCard.query.filter_by(turn_id=current_turn.id).count()
-                position_shift = turn_put_cards
-            else:
-                if app.debug:
-                    print('Card putting player is first in this turn: position shift is ZERO')
-                position_shift = 0
-
+                print('Bets are made in hand: shift is defined with put cards in turn and/or last turn taker')
             turns_in_hand = Turn.query.filter_by(hand_id=self.id).all()
             finished_turns_in_hand = 0
             for turn_in_hand in turns_in_hand:
                 if turn_in_hand.took_user_id:
-                    finished_turns_in_hand =+ 1
-            # if turn is not first actor is calculated based on previous turn taker
-            if finished_turns_in_hand > 0:
+                    finished_turns_in_hand = + 1
+            if finished_turns_in_hand == 0:
                 if app.debug:
-                    print('Current turn is not first: actor is calculated based on previous turn taker')
-                last_turn = self.get_last_turn()
-                turn_starter = User.query.filter_by(id=last_turn.took_user_id).first()
-                if not turn_starter:
-                    # Error: could not define last turn taker
-                    if app.debug:
-                        print('could not define last turn taker')
-                    return None
-                else:
-                    if app.debug:
-                        print('Previous turn were taken by user "' + str(turn_starter.username) + '" (user id ' + str(turn_starter.id) + ')')
-                turn_starter_player = Player.query.filter_by(user_id=turn_starter.id, game_id=self.game_id).first()
-                if app.debug:
-                    print('turn_starter_player user_id is ' + str(turn_starter_player.user_id))
-                shifted_position = (turn_starter_player.position + position_shift) % game_players_cnt
-                if app.debug:
-                    print('previous_turn_taker_position: ' + str(turn_starter_player.position))
-                    print('position_shift: ' + str(position_shift))
-                    print('shifted_position: ' + str(shifted_position))
-                if shifted_position == 0:
-                    shifted_position = game_players_cnt
-                next_player = Player.query.filter_by(game_id=self.game_id, position=shifted_position).first()
-                if not next_player:
-                    # Error: player at calculated position not found
-                    if app.debug:
-                        print('player at calculated position (' + str(shifted_position) + ') not found')
-                    return None
-                return User.query.filter_by(id=next_player.user_id).first()
+                    print('This is first turn in hand: position shift is defined with put cards and played hands')
+                position_shift = turn_put_cards + played_hands
             else:
-                hands_in_game = Hand.query.filter_by(game_id=self.game_id).count()
-                # if current turn and hand are first in game next actor is calculated based on first game actor
-                if hands_in_game <= 1:
+                if app.debug:
+                    print('This is NOT first turn in game: position shift is defined with put cards, starter position is last turn taker position')
+                last_turn = self.get_last_turn()
+                if not last_turn:
                     if app.debug:
-                        print('Current turn and hand are first in game: next actor is calculated based on first game actor')
-                    next_player = Player.query.filter_by(game_id=self.game_id, position=1).first()
-                    if not next_player:
-                        # Error: player at calculated position not found
-                        if app.debug:
-                            print('player at calculated position (1) not found')
-                        return None
-                    return User.query.filter_by(id=next_player.user_id).first()
-                # if turn is first in just one hand next actor is calculated based both on first game actor and hands shift
-                else:
+                        print('Something went wrong: last turn not found but should be...')
+                    return None
+                last_turn_taker = User.query.filter_by(id=last_turn.took_user_id).first()
+                source_position_player = Player.query.filter_by(game_id=self.game_id, user_id=last_turn_taker.id).first()
+                if not source_position_player:
                     if app.debug:
-                        print('Current turn is first in just one hand: next actor is calculated based both on first game actor and hands shift')
-                    shifted_starter_position = (1 + hands_in_game) % game_players_cnt
-                    if shifted_starter_position == 0:
-                        shifted_starter_position = game_players_cnt
-                    shifted_position = (shifted_starter_position + position_shift) % game_players_cnt
-                    if app.debug:
-                        print('hand_starter_position: ' + str(shifted_starter_position))
-                        print('position_shift: ' + str(position_shift))
-                        print('shifted_position: ' + str(shifted_position))
-                    if shifted_position == 0:
-                        shifted_position = game_players_cnt
-                    next_player = Player.query.filter_by(game_id=self.game_id, position=shifted_position).first()
-                    if not next_player:
-                        # Error: player at calculated position not found
-                        if app.debug:
-                            print('player at calculated position (' + str(shifted_position) + ') not found')
-                        return None
-                    return User.query.filter_by(id=next_player.user_id).first()
+                        print('Something went wrong: last turn taker position not found but should be...')
+                    return None
+                source_position = source_position_player.position
+                position_shift = turn_put_cards
 
-
-
-
+        #next acting player position calculation
+        shifted_position = (source_position + position_shift) % game_players_cnt
+        if shifted_position == 0:
+            shifted_position = game_players_cnt
+        if app.debug:
+            print('position_shift: ' + str(position_shift))
+            print('source_position: ' + str(source_position))
+            print(' player "' + str(User.query.filter_by(id=Player.query.filter_by(position=source_position, game_id=self.game_id).first().user_id).first().username) + '")')
+            print('shifted_position: ' + str(shifted_position))
+            print(' (player "' + str(User.query.filter_by(id=Player.query.filter_by(position=shifted_position, game_id=self.game_id).first().user_id).first().username) + '")')
+        next_player = Player.query.filter_by(game_id=self.game_id, position=shifted_position).first()
+        if not next_player:
+            # Error: player at calculated position not found
+            if app.debug:
+                print('player at calculated position (' + str(shifted_position) + ') not found')
+            return None
+        return User.query.filter_by(id=next_player.user_id).first()
 
 
     def next_card_putting_user(self):

@@ -3,7 +3,7 @@
 from flask import url_for, request, jsonify, Blueprint
 from flask_cors import cross_origin
 from app import app, db
-from app.models import User, Game, Player, Hand, HandScore, Turn, DealtCards, TurnCard, Stats
+from app.models import User, Game, Player, Hand, HandScore, Turn, DealtCards, TurnCard, Stats, Room
 from datetime import datetime
 import numpy as np
 
@@ -362,8 +362,10 @@ def put_card(game_id, hand_id, card_id):
                 game_scores = g.get_scores()
                 top_score = 0
                 winner_id = None
+                r = Room.query.filter_by(id=g.room_id).first()
                 for player in g.players:
-                    user = User.query.filter_by(id=player.id)
+                    user = User.query.filter_by(id=player.id).first()
+                    r.not_ready(user)
                     player_scores = user.calc_game_stats(game_id=game_id)
                     if player_scores:
                         if player_scores['totalScore'] >= top_score:

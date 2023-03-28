@@ -3,7 +3,7 @@
 from flask import url_for, request, jsonify, Blueprint
 from flask_cors import cross_origin
 from app import app, db
-from app.models import User, Room, Game, Player, Hand, HandScore
+from app.models import User, Room, Game, Player, Hand, HandScore, TurnCard
 from datetime import datetime
 import random
 
@@ -152,12 +152,17 @@ def finish():
 
     g = active_games[0]
     g.finished = datetime.utcnow()
+    for player in hosted_room.connected_users:
+        user = User.query.filter_by(id=player.id).first()
+        hosted_room.not_ready(user)
     db.session.commit()
 
     players_list = []
     for player in hosted_room.connected_users.all():
         g.connect(player)
         players_list.append(player.username)
+
+
 
     return jsonify({
         'gameId': g.id,
@@ -278,6 +283,7 @@ def status(game_id):
     token = request.json.get('token')
     my_info = {}
     cards_on_table = []
+    last_turn_cards = []
     if token:
         requesting_user = User.verify_api_auth_token(token)
         if requesting_user:
@@ -327,6 +333,26 @@ def status(game_id):
                     'playerPosition': player_position,
                     'playerRelativePosition': player_relative_position
                 })
+
+        last_turn = current_hand.get_last_turn()
+        if last_turn:
+            for card in TurnCard.query.filter_by(turn_id=last_turn.id).all():
+                card_user = User.query.filter_by(id=card.player_id).first()
+                player_position = None
+                player_relative_position = None
+                if card_user:
+                    player_position = current_hand.get_position(card_user)
+                    player_relative_position = player_position
+                    if requesting_user_is_player:
+                        player_relative_position = game.get_player_relative_positions(requesting_user.id, card_user.id)
+                last_turn_cards.append({
+                    'cardId': str(card.card_id) + card.card_suit,
+                    'playerId': card.player_id,
+                    'playerPosition': player_position,
+                    'playerRelativePosition': player_relative_position
+                })
+
+
     else:
         for player in players:
             user = User.query.filter_by(id=player.user_id).first()
@@ -358,6 +384,7 @@ def status(game_id):
         else:                                           # if hand is just finished
             action_msg = 'Hand is finished'
 
+
     response_json = {
         'gameId': game.id,
         'roomName': Room.query.filter_by(id=game.room_id).first().room_name,
@@ -375,6 +402,7 @@ def status(game_id):
         'status': 'open' if game.finished is None else 'finished',
         'finished': game.finished,
         'players': players_enriched,
+        'lastTurnCards': last_turn_cards,
         'nextActingPlayer': next_player.username if next_player else None,
         'host': room.host.username,
         'startedHands': [],

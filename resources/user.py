@@ -32,9 +32,16 @@ def create_user():
     preferred_lang = request.json.get('preferredLang') or app.config['DEFAULT_LANG']
     password = request.json.get('password')
     repeat_password = request.json.get('repeatPassword')
+    admin_secret = request.headers.get('ADMIN_SECRET')
     last_seen = datetime.utcnow()
     registered = datetime.utcnow()
     errors = []
+    if app.config.get('REGISTRATION_RESTRICTED') and admin_secret != app.config.get('ADMIN_SECRET'):
+        return jsonify({
+            'errors': [
+                {'field': 'username', 'message': 'Registration is restricted'}
+            ]
+        }), 400
     if username is None:
         errors.append({'field': 'username', 'message': 'Required'})
     if password is None:

@@ -67,7 +67,7 @@ def get_list():
         if days_delta > 0:
             time_ago_string = str(days_delta) + ' days ago'
         elif hours_delta > 0:
-            time_ago_string = str(hours_delta) + 'hrs ago'
+            time_ago_string = str(hours_delta) + ' hrs ago'
         elif minutes_delta > 0:
             time_ago_string = str(minutes_delta) + ' min ago'
         rooms_json.append({

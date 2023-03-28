@@ -40,3 +40,5 @@ class Config(object):
     MAX_CONTENT_SIZE = os.environ.get('MAX_CONTENT_SIZE') or 300 * 1024
     CONTENT_ALLOWED_FORMATS = os.environ.get('CONTENT_ALLOWED_FORMATS') or ['png']
     MAX_TEXT_SYMBOLS = os.environ.get('MAX_ABOUT_ME_SYMBOLS') or 500
+    ADMIN_SECRET = os.environ.get('ADMIN_SECRET') or 'adminsecret'
+    REGISTRATION_RESTRICTED = os.environ.get('REGISTRATION_RESTRICTED') or False
