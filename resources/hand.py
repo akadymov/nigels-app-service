@@ -6,12 +6,14 @@ from app import app, db
 from app.models import User, Room, Game, Player, Hand, DealtCards, HandScore
 import random
 from math import floor
+from config import get_settings, get_environment
 
 
 hand = Blueprint('hand', __name__)
+env = get_environment()
 
 
-@hand.route('{base_path}/game/<game_id>/hand/deal'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@hand.route('{base_path}/game/<game_id>/hand/deal'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['POST'])
 @cross_origin()
 def deal_cards(game_id):
 
@@ -149,7 +151,7 @@ def deal_cards(game_id):
     ), 200
 
 
-@hand.route('{base_path}/game/<game_id>/hand/<hand_id>/cards'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@hand.route('{base_path}/game/<game_id>/hand/<hand_id>/cards'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['POST'])
 @cross_origin()
 def get_hand_cards(game_id, hand_id):
 
@@ -198,7 +200,7 @@ def get_hand_cards(game_id, hand_id):
     }), 200
 
 
-@hand.route('{base_path}/game/<game_id>/hand/<hand_id>'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@hand.route('{base_path}/game/<game_id>/hand/<hand_id>'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['POST'])
 @cross_origin()
 def status(game_id, hand_id):
     token = request.json.get('token')

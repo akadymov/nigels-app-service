@@ -2,6 +2,7 @@ import unittest
 from app import app
 from tests.base_case import BaseCase
 import json
+from config import get_settings
 
 
 class GameMethodsCase(BaseCase):
@@ -25,13 +26,13 @@ class GameMethodsCase(BaseCase):
 
 
         # register user
-        create_host_response = self.app.post('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']),
+        create_host_response = self.app.post('{base_path}/user'.format(base_path=get_settings('API_BASE_PATH')),
                                  headers={"Content-Type": "application/json"}, data=create_host_payload)
 
         self.assertEqual(201, create_host_response.status_code, msg="Failed to create host user! Response code is {}".format(create_host_response.status_code))
 
         # host auth
-        host_token_response = self.app.post('{base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']),
+        host_token_response = self.app.post('{base_path}/user/token'.format(base_path=get_settings('API_BASE_PATH')),
                                        headers={"Content-Type": "application/json"}, data=host_auth_payload)
 
         host_token_payload = json.dumps({
@@ -43,13 +44,13 @@ class GameMethodsCase(BaseCase):
             "token": host_token_response.json['token'],
             "roomName": room_name1
         })
-        create_room_response = self.app.post('{base_path}/room'.format(base_path=app.config['API_BASE_PATH']),
+        create_room_response = self.app.post('{base_path}/room'.format(base_path=get_settings('API_BASE_PATH')),
                                              headers={"Content-Type": "application/json"}, data=create_room_payload)
 
         self.assertEqual(201, create_room_response.status_code, msg="Failed to create room ({})!".format(create_room_response.status_code))
 
         # start with one player (not allowed)
-        start_insufficient_players_response=self.app.post('{base_path}/game/start'.format(base_path=app.config['API_BASE_PATH']),
+        start_insufficient_players_response=self.app.post('{base_path}/game/start'.format(base_path=get_settings('API_BASE_PATH')),
                                              headers={"Content-Type": "application/json"}, data=host_token_payload)
 
         self.assertEqual(403, start_insufficient_players_response.status_code,
@@ -57,7 +58,7 @@ class GameMethodsCase(BaseCase):
                              start_insufficient_players_response.status_code))
 
         # finish game when one is not started
-        finish_b4_start_response = self.app.post('{base_path}/game/finish'.format(base_path=app.config['API_BASE_PATH']),
+        finish_b4_start_response = self.app.post('{base_path}/game/finish'.format(base_path=get_settings('API_BASE_PATH')),
                                              headers={"Content-Type": "application/json"}, data=host_token_payload)
 
         self.assertEqual(403, finish_b4_start_response.status_code,
@@ -90,7 +91,7 @@ class GameMethodsCase(BaseCase):
             "password": password
         })
 
-        create_user2_response = self.app.post('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']),
+        create_user2_response = self.app.post('{base_path}/user'.format(base_path=get_settings('API_BASE_PATH')),
                                               headers={"Content-Type": "application/json"}, data=create_user2_payload)
 
         self.assertEqual(201, create_user2_response.status_code,
@@ -98,7 +99,7 @@ class GameMethodsCase(BaseCase):
                              create_user2_response.status_code))
 
         # auth
-        token_response2 = self.app.post('{base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']),
+        token_response2 = self.app.post('{base_path}/user/token'.format(base_path=get_settings('API_BASE_PATH')),
                                         headers={"Content-Type": "application/json"}, data=auth_user2_payload)
         user2_token_payload = json.dumps({
             "token": token_response2.json['token']
@@ -106,7 +107,7 @@ class GameMethodsCase(BaseCase):
 
         # connect user2 to room
         connect_to_room2_response = self.app.post(
-            '{base_path}/room/{room_id}/connect'.format(base_path=app.config['API_BASE_PATH'],
+            '{base_path}/room/{room_id}/connect'.format(base_path=get_settings('API_BASE_PATH'),
                                                         room_id=create_room_response.json['roomId']),
             headers={"Content-Type": "application/json"}, data=user2_token_payload)
 
@@ -114,7 +115,7 @@ class GameMethodsCase(BaseCase):
                          msg="Failed to connect Pechkin to room! Response code is {}".format(
                              connect_to_room2_response.status_code))
 
-        create_user3_response = self.app.post('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']),
+        create_user3_response = self.app.post('{base_path}/user'.format(base_path=get_settings('API_BASE_PATH')),
                                               headers={"Content-Type": "application/json"}, data=create_user3_payload)
 
         self.assertEqual(201, create_user3_response.status_code,
@@ -122,7 +123,7 @@ class GameMethodsCase(BaseCase):
                              create_user3_response.status_code))
 
         # auth
-        token_response3 = self.app.post('{base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']),
+        token_response3 = self.app.post('{base_path}/user/token'.format(base_path=get_settings('API_BASE_PATH')),
                                         headers={"Content-Type": "application/json"}, data=auth_user3_payload)
         user3_token_payload = json.dumps({
             "token": token_response3.json['token']
@@ -130,7 +131,7 @@ class GameMethodsCase(BaseCase):
 
         # connect user3 to room
         connect_to_room3_response = self.app.post(
-            '{base_path}/room/{room_id}/connect'.format(base_path=app.config['API_BASE_PATH'],
+            '{base_path}/room/{room_id}/connect'.format(base_path=get_settings('API_BASE_PATH'),
                                                         room_id=create_room_response.json['roomId']),
             headers={"Content-Type": "application/json"}, data=user3_token_payload)
 
@@ -139,7 +140,7 @@ class GameMethodsCase(BaseCase):
                              connect_to_room3_response.status_code))
 
         # start by non-host (not allowed)
-        start_by_non_host_response = self.app.post('{base_path}/game/start'.format(base_path=app.config['API_BASE_PATH']),
+        start_by_non_host_response = self.app.post('{base_path}/game/start'.format(base_path=get_settings('API_BASE_PATH')),
                                              headers={"Content-Type": "application/json"}, data=user2_token_payload)
 
         self.assertEqual(403, start_by_non_host_response.status_code,
@@ -148,7 +149,7 @@ class GameMethodsCase(BaseCase):
 
         # define positions before starting game
         define_pos_b4_start_response = self.app.post(
-            '{base_path}/game/<game_id>/positions'.format(base_path=app.config['API_BASE_PATH']),
+            '{base_path}/game/<game_id>/positions'.format(base_path=get_settings('API_BASE_PATH')),
             headers={"Content-Type": "application/json"}, data=host_token_payload)
 
         self.assertEqual(400, define_pos_b4_start_response.status_code,
@@ -156,7 +157,7 @@ class GameMethodsCase(BaseCase):
                              define_pos_b4_start_response.status_code))
 
         # successful game start
-        successful_start_response = self.app.post('{base_path}/game/start'.format(base_path=app.config['API_BASE_PATH']),
+        successful_start_response = self.app.post('{base_path}/game/start'.format(base_path=get_settings('API_BASE_PATH')),
                                              headers={"Content-Type": "application/json"}, data=host_token_payload)
 
         self.assertEqual(200, successful_start_response.status_code,
@@ -168,7 +169,7 @@ class GameMethodsCase(BaseCase):
         game_id = successful_start_response.json['gameId']
 
         # starting game when one is already started
-        repeat_start_response = self.app.post('{base_path}/game/start'.format(base_path=app.config['API_BASE_PATH']),
+        repeat_start_response = self.app.post('{base_path}/game/start'.format(base_path=get_settings('API_BASE_PATH')),
                                              headers={"Content-Type": "application/json"}, data=host_token_payload)
 
         self.assertEqual(403, repeat_start_response.status_code,
@@ -176,13 +177,13 @@ class GameMethodsCase(BaseCase):
                              repeat_start_response.status_code))
 
         # define positions by non-host (not allowed)
-        define_pos_by_nonhost_response = self.app.post('{base_path}/game/{game_id}/positions'.format(base_path=app.config['API_BASE_PATH'], game_id=game_id),
+        define_pos_by_nonhost_response = self.app.post('{base_path}/game/{game_id}/positions'.format(base_path=get_settings('API_BASE_PATH'), game_id=game_id),
                                              headers={"Content-Type": "application/json"}, data=user3_token_payload)
 
         self.assertEqual(403, define_pos_by_nonhost_response.status_code, msg="Bad response code ({}) when defining positions by non host!".format(define_pos_by_nonhost_response.status_code))
 
         # define positions by host
-        define_pos_by_host_response = self.app.post('{base_path}/game/{game_id}/positions'.format(base_path=app.config['API_BASE_PATH'], game_id=game_id),
+        define_pos_by_host_response = self.app.post('{base_path}/game/{game_id}/positions'.format(base_path=get_settings('API_BASE_PATH'), game_id=game_id),
                                              headers={"Content-Type": "application/json"}, data=host_token_payload)
 
         self.assertEqual(200, define_pos_by_host_response.status_code, msg="Failed to define positions! Response code is {}".format(define_pos_by_host_response.status_code))
@@ -193,7 +194,7 @@ class GameMethodsCase(BaseCase):
 
         # repeat define positions
         repeat_define_pos_response = self.app.post(
-            '{base_path}/game/{game_id}/positions'.format(base_path=app.config['API_BASE_PATH'], game_id=game_id),
+            '{base_path}/game/{game_id}/positions'.format(base_path=get_settings('API_BASE_PATH'), game_id=game_id),
             headers={"Content-Type": "application/json"}, data=host_token_payload)
 
         self.assertEqual(403, repeat_define_pos_response.status_code,
@@ -207,7 +208,7 @@ class GameMethodsCase(BaseCase):
 
         # game status
         game_status_response = self.app.get('{base_path}/game/{game_id}'.format(
-                base_path=app.config['API_BASE_PATH'],
+                base_path=get_settings('API_BASE_PATH'),
                 game_id=game_id
             ), headers={"Content-Type": "application/json"})
 
@@ -233,7 +234,7 @@ class GameMethodsCase(BaseCase):
 
 
         # finish by non-host (not allowed)
-        finish_by_non_host_response = self.app.post('{base_path}/game/finish'.format(base_path=app.config['API_BASE_PATH']),
+        finish_by_non_host_response = self.app.post('{base_path}/game/finish'.format(base_path=get_settings('API_BASE_PATH')),
                                              headers={"Content-Type": "application/json"}, data=user2_token_payload)
 
         self.assertEqual(403, finish_by_non_host_response.status_code,
@@ -241,7 +242,7 @@ class GameMethodsCase(BaseCase):
                              finish_by_non_host_response.status_code))
 
         # successful game finish
-        successful_finish_response = self.app.post('{base_path}/game/finish'.format(base_path=app.config['API_BASE_PATH']),
+        successful_finish_response = self.app.post('{base_path}/game/finish'.format(base_path=get_settings('API_BASE_PATH')),
                                              headers={"Content-Type": "application/json"}, data=host_token_payload)
         self.assertEqual('finished', successful_finish_response.json['status'], msg="Invalid game status ({}) after finishing".format(successful_finish_response.json['status']))
 
@@ -250,7 +251,7 @@ class GameMethodsCase(BaseCase):
                              successful_finish_response.status_code))
 
         # finishing game when one is already finished
-        repeat_finish_response = self.app.post('{base_path}/game/finish'.format(base_path=app.config['API_BASE_PATH']),
+        repeat_finish_response = self.app.post('{base_path}/game/finish'.format(base_path=get_settings('API_BASE_PATH')),
                                              headers={"Content-Type": "application/json"}, data=host_token_payload)
 
         self.assertEqual(403, repeat_finish_response.status_code,
@@ -259,7 +260,7 @@ class GameMethodsCase(BaseCase):
 
         # game status
         game_status_response = self.app.get('{base_path}/game/{game_id}'.format(
-                base_path=app.config['API_BASE_PATH'],
+                base_path=get_settings('API_BASE_PATH'),
                 game_id=game_id
             ), headers={"Content-Type": "application/json"})
 

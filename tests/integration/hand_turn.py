@@ -1,7 +1,7 @@
 import unittest
-from app import app
 from tests.base_case import BaseCase
 import json
+from config import get_settings
 
 
 
@@ -24,14 +24,14 @@ class HandTurnMethodsCase(BaseCase):
         })
 
         # register user
-        create_host_response = self.app.post('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']),
+        create_host_response = self.app.post('{base_path}/user'.format(base_path=get_settings('API_BASE_PATH')),
                                              headers={"Content-Type": "application/json"}, data=create_host_payload)
 
         self.assertEqual(201, create_host_response.status_code,
                          msg="Failed to create host user! Response code is {}".format(create_host_response.status_code))
 
         # host auth
-        host_token_response = self.app.post('{base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']),
+        host_token_response = self.app.post('{base_path}/user/token'.format(base_path=get_settings('API_BASE_PATH')),
                                             headers={"Content-Type": "application/json"}, data=host_auth_payload)
 
         host_token_payload = json.dumps({
@@ -43,7 +43,7 @@ class HandTurnMethodsCase(BaseCase):
             "token": host_token_response.json['token'],
             "roomName": room_name1
         })
-        create_room_response = self.app.post('{base_path}/room'.format(base_path=app.config['API_BASE_PATH']),
+        create_room_response = self.app.post('{base_path}/room'.format(base_path=get_settings('API_BASE_PATH')),
                                              headers={"Content-Type": "application/json"}, data=create_room_payload)
 
         self.assertEqual(201, create_room_response.status_code,
@@ -75,7 +75,7 @@ class HandTurnMethodsCase(BaseCase):
             "password": password
         })
 
-        create_user2_response = self.app.post('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']),
+        create_user2_response = self.app.post('{base_path}/user'.format(base_path=get_settings('API_BASE_PATH')),
                                               headers={"Content-Type": "application/json"}, data=create_user2_payload)
 
         self.assertEqual(201, create_user2_response.status_code,
@@ -83,7 +83,7 @@ class HandTurnMethodsCase(BaseCase):
                              create_user2_response.status_code))
 
         # auth
-        token_response2 = self.app.post('{base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']),
+        token_response2 = self.app.post('{base_path}/user/token'.format(base_path=get_settings('API_BASE_PATH')),
                                         headers={"Content-Type": "application/json"}, data=auth_user2_payload)
         user2_token_payload = json.dumps({
             "token": token_response2.json['token']
@@ -91,7 +91,7 @@ class HandTurnMethodsCase(BaseCase):
 
         # connect user2 to room
         connect_to_room2_response = self.app.post(
-            '{base_path}/room/{room_id}/connect'.format(base_path=app.config['API_BASE_PATH'],
+            '{base_path}/room/{room_id}/connect'.format(base_path=get_settings('API_BASE_PATH'),
                                                         room_id=create_room_response.json['roomId']),
             headers={"Content-Type": "application/json"}, data=user2_token_payload)
 
@@ -99,7 +99,7 @@ class HandTurnMethodsCase(BaseCase):
                          msg="Failed to connect Pechkin to room! Response code is {}".format(
                              connect_to_room2_response.status_code))
 
-        create_user3_response = self.app.post('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']),
+        create_user3_response = self.app.post('{base_path}/user'.format(base_path=get_settings('API_BASE_PATH')),
                                               headers={"Content-Type": "application/json"}, data=create_user3_payload)
 
         self.assertEqual(201, create_user3_response.status_code,
@@ -107,7 +107,7 @@ class HandTurnMethodsCase(BaseCase):
                              create_user3_response.status_code))
 
         # auth
-        token_response3 = self.app.post('{base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']),
+        token_response3 = self.app.post('{base_path}/user/token'.format(base_path=get_settings('API_BASE_PATH')),
                                         headers={"Content-Type": "application/json"}, data=auth_user3_payload)
         user3_token_payload = json.dumps({
             "token": token_response3.json['token']
@@ -115,7 +115,7 @@ class HandTurnMethodsCase(BaseCase):
 
         # connect user3 to room
         connect_to_room3_response = self.app.post(
-            '{base_path}/room/{room_id}/connect'.format(base_path=app.config['API_BASE_PATH'],
+            '{base_path}/room/{room_id}/connect'.format(base_path=get_settings('API_BASE_PATH'),
                                                         room_id=create_room_response.json['roomId']),
             headers={"Content-Type": "application/json"}, data=user3_token_payload)
 
@@ -125,7 +125,7 @@ class HandTurnMethodsCase(BaseCase):
 
         # successful game start
         successful_start_response = self.app.post(
-            '{base_path}/game/start'.format(base_path=app.config['API_BASE_PATH']),
+            '{base_path}/game/start'.format(base_path=get_settings('API_BASE_PATH')),
             headers={"Content-Type": "application/json"}, data=host_token_payload)
 
         self.assertEqual(200, successful_start_response.status_code,
@@ -136,7 +136,7 @@ class HandTurnMethodsCase(BaseCase):
 
         # define positions
         define_pos_by_host_response = self.app.post(
-            '{base_path}/game/{game_id}/positions'.format(base_path=app.config['API_BASE_PATH'], game_id=game_id),
+            '{base_path}/game/{game_id}/positions'.format(base_path=get_settings('API_BASE_PATH'), game_id=game_id),
             headers={"Content-Type": "application/json"}, data=host_token_payload)
 
         self.assertEqual(200, define_pos_by_host_response.status_code,
@@ -145,7 +145,7 @@ class HandTurnMethodsCase(BaseCase):
 
         # deal cards by non host
         deal_by_non_host_response = self.app.post('{base_path}/game/{game_id}/hand/deal'.format(
-            base_path=app.config['API_BASE_PATH'], game_id=game_id),
+            base_path=get_settings('API_BASE_PATH'), game_id=game_id),
             headers={"Content-Type": "application/json"}, data=user2_token_payload)
 
         self.assertEqual(403, deal_by_non_host_response.status_code,
@@ -154,7 +154,7 @@ class HandTurnMethodsCase(BaseCase):
 
         # deal cards by host
         deal_by_host_response = self.app.post('{base_path}/game/{game_id}/hand/deal'.format(
-            base_path=app.config['API_BASE_PATH'], game_id=game_id),
+            base_path=get_settings('API_BASE_PATH'), game_id=game_id),
             headers={"Content-Type": "application/json"}, data=host_token_payload)
 
         self.assertEqual(200, deal_by_host_response.status_code,
@@ -175,7 +175,7 @@ class HandTurnMethodsCase(BaseCase):
 
         # deal when already dealt and hand is not finished (not allowed)
         repeat_deal_by_host_response = self.app.post('{base_path}/game/{game_id}/hand/deal'.format(
-            base_path=app.config['API_BASE_PATH'], game_id=game_id),
+            base_path=get_settings('API_BASE_PATH'), game_id=game_id),
             headers={"Content-Type": "application/json"}, data=host_token_payload)
 
         self.assertEqual(403, repeat_deal_by_host_response.status_code,
@@ -184,7 +184,7 @@ class HandTurnMethodsCase(BaseCase):
 
         # get cards on hand
         cards_on__host_hand_response = self.app.post(
-            '{base_path}/game/{game_id}/hand/{hand_id}/cards'.format(base_path=app.config['API_BASE_PATH'],
+            '{base_path}/game/{game_id}/hand/{hand_id}/cards'.format(base_path=get_settings('API_BASE_PATH'),
                                                                    game_id=game_id, hand_id=hand_id),
             headers={"Content-Type": "application/json"}, data=host_token_payload)
 
@@ -198,7 +198,7 @@ class HandTurnMethodsCase(BaseCase):
 
         # get leaderboard before putting cards
         leaderboard_response = self.app.get(
-            '{base_path}/game/{game_id}/score'.format(base_path=app.config['API_BASE_PATH'],
+            '{base_path}/game/{game_id}/score'.format(base_path=get_settings('API_BASE_PATH'),
                                                       game_id=game_id), headers={"Content-Type": "application/json"})
 
         self.assertEqual(200, leaderboard_response.status_code,
@@ -214,7 +214,7 @@ class HandTurnMethodsCase(BaseCase):
         betting_player_token_payload = json.dumps(betting_player_token_payload)
 
         bet_out_of_bad_position_response = self.app.post('{base_path}/game/{game_id}/hand/{hand_id}/turn/bet'.format(
-            base_path=app.config['API_BASE_PATH'], game_id=game_id, hand_id=hand_id),
+            base_path=get_settings('API_BASE_PATH'), game_id=game_id, hand_id=hand_id),
             headers={"Content-Type": "application/json"}, data=betting_player_token_payload)
 
         self.assertEqual(403, bet_out_of_bad_position_response.status_code,
@@ -229,7 +229,7 @@ class HandTurnMethodsCase(BaseCase):
             betting_player_token_payload = user3_token_payload
 
         cards_on_first_player_hand_response = self.app.post(
-            '{base_path}/game/{game_id}/hand/{hand_id}/cards'.format(base_path=app.config['API_BASE_PATH'],
+            '{base_path}/game/{game_id}/hand/{hand_id}/cards'.format(base_path=get_settings('API_BASE_PATH'),
                                                                    game_id=game_id, hand_id=hand_id),
             headers={"Content-Type": "application/json"}, data=betting_player_token_payload)
         cards_on_first_player_hand = cards_on_first_player_hand_response.json['cardsInHand']
@@ -239,7 +239,7 @@ class HandTurnMethodsCase(BaseCase):
         betting_player_token_payload = json.dumps(betting_player_token_payload)
 
         make_bet_response = self.app.post('{base_path}/game/{game_id}/hand/{hand_id}/turn/bet'.format(
-            base_path=app.config['API_BASE_PATH'], game_id=game_id, hand_id=hand_id),
+            base_path=get_settings('API_BASE_PATH'), game_id=game_id, hand_id=hand_id),
             headers={"Content-Type": "application/json"}, data=betting_player_token_payload)
 
         self.assertEqual(200, make_bet_response.status_code,
@@ -247,7 +247,7 @@ class HandTurnMethodsCase(BaseCase):
 
         # game status
         game_status_response = self.app.get('{base_path}/game/{game_id}'.format(
-                base_path=app.config['API_BASE_PATH'],
+                base_path=get_settings('API_BASE_PATH'),
                 game_id=game_id
             ), headers={"Content-Type": "application/json"})
 
@@ -274,7 +274,7 @@ class HandTurnMethodsCase(BaseCase):
         # put first card before making all bets
         put_card_b4_bets_response = self.app.post(
             '{base_path}/game/{game_id}/hand/{hand_id}/turn/card/put/{card_id}'.format(
-                base_path=app.config['API_BASE_PATH'], game_id=game_id, hand_id=hand_id,
+                base_path=get_settings('API_BASE_PATH'), game_id=game_id, hand_id=hand_id,
                 card_id=cards_on_first_player_hand[0]),
             headers={"Content-Type": "application/json"}, data=betting_player_token_payload)
 
@@ -285,7 +285,7 @@ class HandTurnMethodsCase(BaseCase):
 
         # repeat bet
         repeat_bet_response = self.app.post('{base_path}/game/{game_id}/hand/{hand_id}/turn/bet'.format(
-            base_path=app.config['API_BASE_PATH'], game_id=game_id, hand_id=hand_id),
+            base_path=get_settings('API_BASE_PATH'), game_id=game_id, hand_id=hand_id),
             headers={"Content-Type": "application/json"}, data=betting_player_token_payload)
 
         self.assertEqual(403, repeat_bet_response.status_code,
@@ -299,7 +299,7 @@ class HandTurnMethodsCase(BaseCase):
             second_betting_player_token_payload = user3_token_payload
 
         cards_on_second_player_hand_response = self.app.post(
-            '{base_path}/game/{game_id}/hand/{hand_id}/cards'.format(base_path=app.config['API_BASE_PATH'],
+            '{base_path}/game/{game_id}/hand/{hand_id}/cards'.format(base_path=get_settings('API_BASE_PATH'),
                                                                    game_id=game_id, hand_id=hand_id),
             headers={"Content-Type": "application/json"}, data=second_betting_player_token_payload)
         cards_on_second_player_hand = cards_on_second_player_hand_response.json['cardsInHand']
@@ -309,7 +309,7 @@ class HandTurnMethodsCase(BaseCase):
         second_betting_player_token_payload = json.dumps(second_betting_player_token_payload)
 
         make_second_bet_response = self.app.post('{base_path}/game/{game_id}/hand/{hand_id}/turn/bet'.format(
-            base_path=app.config['API_BASE_PATH'], game_id=game_id, hand_id=hand_id),
+            base_path=get_settings('API_BASE_PATH'), game_id=game_id, hand_id=hand_id),
             headers={"Content-Type": "application/json"}, data=second_betting_player_token_payload)
 
         self.assertEqual(200, make_second_bet_response.status_code,
@@ -323,7 +323,7 @@ class HandTurnMethodsCase(BaseCase):
             last_betting_player_token_payload = user3_token_payload
 
         cards_on_last_player_hand_response = self.app.post(
-            '{base_path}/game/{game_id}/hand/{hand_id}/cards'.format(base_path=app.config['API_BASE_PATH'],
+            '{base_path}/game/{game_id}/hand/{hand_id}/cards'.format(base_path=get_settings('API_BASE_PATH'),
                                                                    game_id=game_id, hand_id=hand_id),
             headers={"Content-Type": "application/json"}, data=last_betting_player_token_payload)
         cards_on_last_player_hand = cards_on_last_player_hand_response.json['cardsInHand']
@@ -333,7 +333,7 @@ class HandTurnMethodsCase(BaseCase):
         last_betting_player_token_payload = json.dumps(last_betting_player_token_payload)
 
         make_last_bet_response = self.app.post('{base_path}/game/{game_id}/hand/{hand_id}/turn/bet'.format(
-            base_path=app.config['API_BASE_PATH'], game_id=game_id, hand_id=hand_id),
+            base_path=get_settings('API_BASE_PATH'), game_id=game_id, hand_id=hand_id),
             headers={"Content-Type": "application/json"}, data=last_betting_player_token_payload)
 
         self.assertEqual(400, make_last_bet_response.status_code,
@@ -345,7 +345,7 @@ class HandTurnMethodsCase(BaseCase):
         last_betting_player_token_payload = json.dumps(last_betting_player_token_payload)
 
         make_last_bet_response = self.app.post('{base_path}/game/{game_id}/hand/{hand_id}/turn/bet'.format(
-            base_path=app.config['API_BASE_PATH'], game_id=game_id, hand_id=hand_id),
+            base_path=get_settings('API_BASE_PATH'), game_id=game_id, hand_id=hand_id),
             headers={"Content-Type": "application/json"}, data=last_betting_player_token_payload)
 
         self.assertEqual(200, make_last_bet_response.status_code,
@@ -354,7 +354,7 @@ class HandTurnMethodsCase(BaseCase):
         # Put card out of defined position
         put_card_out_of_position_response = self.app.post(
             '{base_path}/game/{game_id}/hand/{hand_id}/turn/card/put/{card_id}'.format(
-                base_path=app.config['API_BASE_PATH'], game_id=game_id, hand_id=hand_id,
+                base_path=get_settings('API_BASE_PATH'), game_id=game_id, hand_id=hand_id,
                 card_id=cards_on_second_player_hand[0]),
             headers={"Content-Type": "application/json"}, data=second_betting_player_token_payload)
 
@@ -366,7 +366,7 @@ class HandTurnMethodsCase(BaseCase):
         # Put card that is not on hand
         put_absent_card_response = self.app.post(
             '{base_path}/game/{game_id}/hand/{hand_id}/turn/card/put/{card_id}'.format(
-                base_path=app.config['API_BASE_PATH'], game_id=game_id, hand_id=hand_id,
+                base_path=get_settings('API_BASE_PATH'), game_id=game_id, hand_id=hand_id,
                 card_id=cards_on_second_player_hand[0]),
             headers={"Content-Type": "application/json"}, data=betting_player_token_payload)
 
@@ -383,7 +383,7 @@ class HandTurnMethodsCase(BaseCase):
                 break
         put_first_card_response = self.app.post(
             '{base_path}/game/{game_id}/hand/{hand_id}/turn/card/put/{card_id}'.format(
-                base_path=app.config['API_BASE_PATH'], game_id=game_id, hand_id=hand_id, card_id=card_id),
+                base_path=get_settings('API_BASE_PATH'), game_id=game_id, hand_id=hand_id, card_id=card_id),
             headers={"Content-Type": "application/json"}, data=betting_player_token_payload)
         first_turn_suit = cards_on_first_player_hand[0][1:]
 
@@ -394,7 +394,7 @@ class HandTurnMethodsCase(BaseCase):
 
         # game status
         game_status_response = self.app.get('{base_path}/game/{game_id}'.format(
-                base_path=app.config['API_BASE_PATH'],
+                base_path=get_settings('API_BASE_PATH'),
                 game_id=game_id
             ), headers={"Content-Type": "application/json"})
 
@@ -420,7 +420,7 @@ class HandTurnMethodsCase(BaseCase):
 
         # hand status after first card in turn
         hand_status_response = self.app.get('{base_path}/game/{game_id}/hand/{hand_id}'.format(
-                base_path=app.config['API_BASE_PATH'],
+                base_path=get_settings('API_BASE_PATH'),
                 game_id=game_id,
                 hand_id=hand_id
             ), headers={"Content-Type": "application/json"}
@@ -458,7 +458,7 @@ class HandTurnMethodsCase(BaseCase):
         if i < len(cards_on_second_player_hand):  # means that player has at least one suited card
             put_invalid_second_card_response = self.app.post(
                 '{base_path}/game/{game_id}/hand/{hand_id}/turn/card/put/{card_id}'.format(
-                    base_path=app.config['API_BASE_PATH'], game_id=game_id, hand_id=hand_id, card_id=card_id),
+                    base_path=get_settings('API_BASE_PATH'), game_id=game_id, hand_id=hand_id, card_id=card_id),
                 headers={"Content-Type": "application/json"}, data=second_betting_player_token_payload)
 
             self.assertEqual(403, put_invalid_second_card_response.status_code,
@@ -475,7 +475,7 @@ class HandTurnMethodsCase(BaseCase):
                 i = i + 1
         put_valid_second_card_response = self.app.post(
             '{base_path}/game/{game_id}/hand/{hand_id}/turn/card/put/{card_id}'.format(
-                base_path=app.config['API_BASE_PATH'], game_id=game_id, hand_id=hand_id, card_id=card_id),
+                base_path=get_settings('API_BASE_PATH'), game_id=game_id, hand_id=hand_id, card_id=card_id),
             headers={"Content-Type": "application/json"}, data=second_betting_player_token_payload)
 
         if i > 0:  # means that player has at least one suited card
@@ -499,7 +499,7 @@ class HandTurnMethodsCase(BaseCase):
                 no_valid_cards = False
         put_valid_last_card_response = self.app.post(
             '{base_path}/game/{game_id}/hand/{hand_id}/turn/card/put/{card_id}'.format(
-                base_path=app.config['API_BASE_PATH'], game_id=game_id, hand_id=hand_id, card_id=card_id),
+                base_path=get_settings('API_BASE_PATH'), game_id=game_id, hand_id=hand_id, card_id=card_id),
             headers={"Content-Type": "application/json"}, data=last_betting_player_token_payload)
 
         if not no_valid_cards:  # means that player has at least one suited card
@@ -516,7 +516,7 @@ class HandTurnMethodsCase(BaseCase):
 
         # hand status after first turn
         hand_status_response = self.app.get('{base_path}/game/{game_id}/hand/{hand_id}'.format(
-                base_path=app.config['API_BASE_PATH'],
+                base_path=get_settings('API_BASE_PATH'),
                 game_id=game_id,
                 hand_id=hand_id
             ), headers={"Content-Type": "application/json"}

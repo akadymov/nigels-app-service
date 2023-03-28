@@ -6,12 +6,14 @@ from app import app, db
 from app.models import User, Game, Player, Hand, HandScore, Turn, DealtCards, TurnCard, Stats, Room
 from datetime import datetime
 import numpy as np
+from config import get_settings, get_environment
 
 
 turn = Blueprint('turn', __name__)
+env = get_environment()
 
 
-@turn.route('{base_path}/game/<game_id>/hand/<hand_id>/turn/bet'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@turn.route('{base_path}/game/<game_id>/hand/<hand_id>/turn/bet'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['POST'])
 @cross_origin()
 def bet(game_id, hand_id):
 
@@ -111,7 +113,7 @@ def bet(game_id, hand_id):
     }), 200
 
 
-@turn.route('{base_path}/game/<game_id>/hand/<hand_id>/turn/card/put/<card_id>'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@turn.route('{base_path}/game/<game_id>/hand/<hand_id>/turn/card/put/<card_id>'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['POST'])
 @cross_origin()
 def put_card(game_id, hand_id, card_id):
     if app.debug:

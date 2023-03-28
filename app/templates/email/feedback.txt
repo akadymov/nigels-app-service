@@ -1,4 +1,4 @@
-New feedback message from Naegels app user {{ sender_name }}:
+New feedback message from Nigels app user {{ sender_name }}:
 
 "{{ message }}"
 

@@ -7,8 +7,12 @@ from flask import url_for, jsonify
 from time import time
 import jwt
 from sqlalchemy import text
+from config import get_settings, get_environment
 
 
+
+auth = get_settings('AUTH')
+env = get_environment()
 
 connections = db.Table(
     'connections',
@@ -68,10 +72,10 @@ class User(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
     def generate_auth_token(self):
-        # s = Serializer(app.config['SECRET_KEY']) #, expires_in=app.config['TOKEN_LIFETIME'])
+        # s = Serializer(auth['SECRET_KEY'][env]) #, expires_in=auth['SECRET_KEY'][TOKEN_LIFETIME])
         return jwt.encode(
             {'username': self.username, 'email': self.email},
-            app.config['SECRET_KEY'],
+            auth['SECRET_KEY'][env],
             algorithm='HS256'
         )
         # return s.dumps({'username': self.username, 'email': self.email})
@@ -86,9 +90,9 @@ class User(UserMixin, db.Model):
 
     @staticmethod
     def verify_auth_token(token):
-        # s = Serializer(app.config['SECRET_KEY'])
+        # s = Serializer(auth['SECRET_KEY'][env])
         try:
-            data = jwt.decode(token, app.config['SECRET_KEY'], algorithms=['HS256'])
+            data = jwt.decode(token, auth['SECRET_KEY'][env], algorithms=['HS256'])
         except jwt.ExpiredSignatureError:
             return None
         except jwt.InvalidIssuerError:
@@ -101,7 +105,7 @@ class User(UserMixin, db.Model):
     def get_reset_password_token(self, expires_in=600):
         new_token = jwt.encode(
             {'reset_password': self.id, 'exp': time() + expires_in},
-            app.config['SECRET_KEY'],
+            auth['SECRET_KEY'][env],
             algorithm='HS256'
         )
         new_token_entry = Token(token=new_token, status='active', type='reset_password')
@@ -117,7 +121,7 @@ class User(UserMixin, db.Model):
         if saved_token.status != 'active':
             return
         try:
-            id = jwt.decode(token, app.config['SECRET_KEY'],
+            id = jwt.decode(token, auth['SECRET_KEY'][env],
                             algorithms=['HS256'])['reset_password']
         except:
             return

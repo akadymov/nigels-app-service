@@ -3,6 +3,10 @@ from app import app
 from app.models import User
 from tests.base_case import BaseCase
 import json
+from config import get_settings, get_environment
+
+langs = get_environment('LANG')
+env = get_environment()
 
 
 class UserMethodsCase(BaseCase):
@@ -25,12 +29,12 @@ class UserMethodsCase(BaseCase):
             })
 
             # When
-            response = self.app.post('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']),
+            response = self.app.post('{base_path}/user'.format(base_path=get_settings('API_BASE_PATH')),
                                      headers={"Content-Type": "application/json"}, data=payload1)
             get_user_response = self.app.get(
-                '{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
+                '{base_path}/user/{username}'.format(base_path=get_settings('API_BASE_PATH'), username=username),
                 headers={"Content-Type": "application/json"})
-            token_response = self.app.post('{base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']),
+            token_response = self.app.post('{base_path}/user/token'.format(base_path=get_settings('API_BASE_PATH')),
                                            headers={"Content-Type": "application/json"}, data=payload2)
 
             # Then
@@ -39,7 +43,7 @@ class UserMethodsCase(BaseCase):
             self.assertEqual(email, response.json['email'], msg='Invalid email in response body!')
             self.assertIsNone(response.json['aboutMe'], msg='About me is not None in response body!')
             self.assertEqual(str, type(response.json['lastSeen']), msg='No last seen timestamp in response body!')
-            self.assertEqual(app.config['DEFAULT_LANG'], response.json['preferredLang'],
+            self.assertEqual(langs['DEFAULT'][env], response.json['preferredLang'],
                              msg='Preferred lang is not set to default for signed up user!')
             self.assertEqual(str, type(response.json['registered']), msg='No registered timestamp in response body!')
             self.assertEqual('matroskin', response.json['username'], msg='Invalid username in response body!')
@@ -51,7 +55,7 @@ class UserMethodsCase(BaseCase):
             self.assertIsNone(get_user_response.json['aboutMe'], msg='About me is not None in get user response body!')
             self.assertEqual(str, type(get_user_response.json['lastSeen']),
                              msg='No last seen timestamp in get user response body!')
-            self.assertEqual(app.config['DEFAULT_LANG'], get_user_response.json['preferredLang'],
+            self.assertEqual(langs['DEFAULT'][env], get_user_response.json['preferredLang'],
                              msg='Preferred lang is not set to default for signed up user!')
             self.assertEqual(str, type(get_user_response.json['registered']),
                              msg='No registered timestamp in response body!')
@@ -77,11 +81,11 @@ class UserMethodsCase(BaseCase):
             })
 
             # When
-            response = self.app.post('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']),
+            response = self.app.post('{base_path}/user'.format(base_path=get_settings('API_BASE_PATH')),
                                      headers={"Content-Type": "application/json"}, data=payload)
             u_count = User.query.filter_by(email=email).count()
             get_user_response = self.app.get(
-                '{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
+                '{base_path}/user/{username}'.format(base_path=get_settings('API_BASE_PATH'), username=username),
                 headers={"Content-Type": "application/json"})
 
             # Then
@@ -113,13 +117,13 @@ class UserMethodsCase(BaseCase):
             })
 
             # When
-            self.app.post('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']),
+            self.app.post('{base_path}/user'.format(base_path=get_settings('API_BASE_PATH')),
                           headers={"Content-Type": "application/json"}, data=payload1)
-            response = self.app.post('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']),
+            response = self.app.post('{base_path}/user'.format(base_path=get_settings('API_BASE_PATH')),
                                      headers={"Content-Type": "application/json"}, data=payload2)
             u_count = User.query.filter_by(email=email).count()
             get_user_response = self.app.get(
-                '{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username2),
+                '{base_path}/user/{username}'.format(base_path=get_settings('API_BASE_PATH'), username=username2),
                 headers={"Content-Type": "application/json"})
 
             # Then
@@ -152,13 +156,13 @@ class UserMethodsCase(BaseCase):
             })
 
             # When
-            self.app.post('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']),
+            self.app.post('{base_path}/user'.format(base_path=get_settings('API_BASE_PATH')),
                           headers={"Content-Type": "application/json"}, data=payload1)
-            response = self.app.post('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']),
+            response = self.app.post('{base_path}/user'.format(base_path=get_settings('API_BASE_PATH')),
                                      headers={"Content-Type": "application/json"}, data=payload2)
             u_count = User.query.filter_by(username=username.casefold()).count()
             get_user_response = self.app.get(
-                '{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
+                '{base_path}/user/{username}'.format(base_path=get_settings('API_BASE_PATH'), username=username),
                 headers={"Content-Type": "application/json"})
 
             # Then
@@ -184,11 +188,11 @@ class UserMethodsCase(BaseCase):
             })
 
             # When
-            response = self.app.post('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']),
+            response = self.app.post('{base_path}/user'.format(base_path=get_settings('API_BASE_PATH')),
                                      headers={"Content-Type": "application/json"}, data=payload)
             u_count = User.query.filter_by(email=email).count()
             get_user_response = self.app.get(
-                '{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
+                '{base_path}/user/{username}'.format(base_path=get_settings('API_BASE_PATH'), username=username),
                 headers={"Content-Type": "application/json"})
 
             # Then
@@ -218,9 +222,9 @@ class UserMethodsCase(BaseCase):
             })
 
             # When
-            response = self.app.post('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']),
+            response = self.app.post('{base_path}/user'.format(base_path=get_settings('API_BASE_PATH')),
                                      headers={"Content-Type": "application/json"}, data=payload1)
-            token_response = self.app.post('{base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']),
+            token_response = self.app.post('{base_path}/user/token'.format(base_path=get_settings('API_BASE_PATH')),
                                            headers={"Content-Type": "application/json"}, data=payload2)
 
             # Then
@@ -257,11 +261,11 @@ class UserMethodsCase(BaseCase):
             })
 
             # When
-            response = self.app.post('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']),
+            response = self.app.post('{base_path}/user'.format(base_path=get_settings('API_BASE_PATH')),
                                      headers={"Content-Type": "application/json"}, data=payload1)
-            response2 = self.app.post('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']),
+            response2 = self.app.post('{base_path}/user'.format(base_path=get_settings('API_BASE_PATH')),
                                      headers={"Content-Type": "application/json"}, data=payload3)
-            token_response = self.app.post('{base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']),
+            token_response = self.app.post('{base_path}/user/token'.format(base_path=get_settings('API_BASE_PATH')),
                                            headers={"Content-Type": "application/json"}, data=payload2)
 
             # Then
@@ -282,7 +286,7 @@ class UserMethodsCase(BaseCase):
                 "preferredLang": "ru"
             })
 
-            update_profile_response = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
+            update_profile_response = self.app.put('{base_path}/user/{username}'.format(base_path=get_settings('API_BASE_PATH'), username=username),
                             headers={"Content-Type": "application/json"}, data=payload4)
 
             payload5 = json.dumps({
@@ -292,7 +296,7 @@ class UserMethodsCase(BaseCase):
                 "preferredLang": "ru"
             })
 
-            update_profile_response2 = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username2),
+            update_profile_response2 = self.app.put('{base_path}/user/{username}'.format(base_path=get_settings('API_BASE_PATH'), username=username2),
                             headers={"Content-Type": "application/json"}, data=payload5)
 
             payload6 = json.dumps({
@@ -302,7 +306,7 @@ class UserMethodsCase(BaseCase):
                 "preferredLang": "ru"
             })
 
-            update_profile_response3 = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
+            update_profile_response3 = self.app.put('{base_path}/user/{username}'.format(base_path=get_settings('API_BASE_PATH'), username=username),
                             headers={"Content-Type": "application/json"}, data=payload6)
 
             payload7 = json.dumps({
@@ -312,7 +316,7 @@ class UserMethodsCase(BaseCase):
                 "preferredLang": "ru"
             })
 
-            update_profile_response4 = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
+            update_profile_response4 = self.app.put('{base_path}/user/{username}'.format(base_path=get_settings('API_BASE_PATH'), username=username),
                             headers={"Content-Type": "application/json"}, data=payload7)
 
             payload8 = json.dumps({
@@ -322,7 +326,7 @@ class UserMethodsCase(BaseCase):
                 "preferredLang": "de"
             })
 
-            update_profile_response5 = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
+            update_profile_response5 = self.app.put('{base_path}/user/{username}'.format(base_path=get_settings('API_BASE_PATH'), username=username),
                             headers={"Content-Type": "application/json"}, data=payload8)
 
             self.assertEqual(200, update_profile_response.status_code,
@@ -362,9 +366,9 @@ class UserMethodsCase(BaseCase):
             })
 
             # When
-            response = self.app.post('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']),
+            response = self.app.post('{base_path}/user'.format(base_path=get_settings('API_BASE_PATH')),
                                      headers={"Content-Type": "application/json"}, data=payload1)
-            token_response = self.app.post('{base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']),
+            token_response = self.app.post('{base_path}/user/token'.format(base_path=get_settings('API_BASE_PATH')),
                                            headers={"Content-Type": "application/json"}, data=payload2)
 
             # Then
@@ -381,7 +385,7 @@ class UserMethodsCase(BaseCase):
                 "token": token_response.json['token']
             })
 
-            update_profile_response = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
+            update_profile_response = self.app.put('{base_path}/user/{username}'.format(base_path=get_settings('API_BASE_PATH'), username=username),
                             headers={"Content-Type": "application/json"}, data=payload3)
 
             self.assertEqual(200, update_profile_response.status_code,
@@ -389,7 +393,7 @@ class UserMethodsCase(BaseCase):
             self.assertEqual(email2, update_profile_response.json['email'], msg='Invalid email in get profile response body!')
             self.assertIsNone(update_profile_response.json['aboutMe'], msg='About me is not None in response body!')
             self.assertEqual(str, type(update_profile_response.json['lastSeen']), msg='No last seen timestamp in get profile response body!')
-            self.assertEqual(app.config['DEFAULT_LANG'], update_profile_response.json['preferredLang'],
+            self.assertEqual(langs['DEFAULT'][env], update_profile_response.json['preferredLang'],
                              msg='Preferred lang is not set to default for signed up user!')
             self.assertEqual(str, type(update_profile_response.json['registered']), msg='No registered timestamp in get profile response body!')
             self.assertEqual('matroskin', update_profile_response.json['username'], msg='Invalid username in get profile response body!')
@@ -412,9 +416,9 @@ class UserMethodsCase(BaseCase):
             })
 
             # When
-            response = self.app.post('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']),
+            response = self.app.post('{base_path}/user'.format(base_path=get_settings('API_BASE_PATH')),
                                      headers={"Content-Type": "application/json"}, data=payload1)
-            token_response = self.app.post('{base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']),
+            token_response = self.app.post('{base_path}/user/token'.format(base_path=get_settings('API_BASE_PATH')),
                                            headers={"Content-Type": "application/json"}, data=payload2)
 
             # Then
@@ -431,7 +435,7 @@ class UserMethodsCase(BaseCase):
                 "token": "invalidJwtToken"
             })
 
-            update_profile_response = self.app.put('{base_path}/user/{username}'.format(base_path=app.config['API_BASE_PATH'], username=username),
+            update_profile_response = self.app.put('{base_path}/user/{username}'.format(base_path=get_settings('API_BASE_PATH'), username=username),
                             headers={"Content-Type": "application/json"}, data=payload3)
 
             self.assertEqual(401, update_profile_response.status_code,

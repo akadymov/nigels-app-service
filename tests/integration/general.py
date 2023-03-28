@@ -1,12 +1,13 @@
 import unittest
 from app import app
 from tests.base_case import BaseCase
+from config import get_settings
 
 
 class GeneralMethodsCase(BaseCase):
 
     def test_rules(self):
-        rules_response = self.app.get('{base_path}/rules'.format(base_path=app.config['API_BASE_PATH']),
+        rules_response = self.app.get('{base_path}/rules'.format(base_path=get_settings('API_BASE_PATH')),
                                              headers={"Content-Type": "application/json"})
 
         self.assertEqual(200, rules_response.status_code,
@@ -14,7 +15,7 @@ class GeneralMethodsCase(BaseCase):
         self.assertIsNotNone(rules_response.json['rules'], msg="Rules field is empty in response!")
 
     def test_info(self):
-        info_response = self.app.get('{base_path}/info'.format(base_path=app.config['API_BASE_PATH']),
+        info_response = self.app.get('{base_path}/info'.format(base_path=get_settings('API_BASE_PATH')),
                                              headers={"Content-Type": "application/json"})
 
         self.assertEqual(200, info_response.status_code,

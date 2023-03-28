@@ -2,12 +2,14 @@
 
 from flask import url_for, request, jsonify, Blueprint
 from flask_cors import cross_origin
-from app import app, db
-from app.models import User, Room, Stats
+from app import db
+from app.models import User, Room
 from datetime import datetime
+from config import get_settings, get_environment
 
 
 room = Blueprint('room', __name__)
+env = get_environment()
 
 
 def generate_users_json(target_room, connected_users):
@@ -45,7 +47,7 @@ def generate_games_json(target_room):
             games_json['ongoingGameId'] = game.id
     return games_json
 
-@room.route('{base_path}/room/all'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@room.route('{base_path}/room/all'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['POST'])
 @cross_origin()
 def get_list():
     connected_room = None
@@ -87,7 +89,7 @@ def get_list():
     }), 200
 
 
-@room.route('{base_path}/room'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@room.route('{base_path}/room'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['POST'])
 @cross_origin()
 def create():
 
@@ -143,7 +145,7 @@ def create():
     }), 201
 
 
-@room.route('{base_path}/room/<room_id>/close'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@room.route('{base_path}/room/<room_id>/close'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['POST'])
 @cross_origin()
 def close(room_id):
 
@@ -196,7 +198,7 @@ def close(room_id):
     }), 201
 
 
-@room.route('{base_path}/room/<room_id>/connect'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@room.route('{base_path}/room/<room_id>/connect'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['POST'])
 @cross_origin()
 def connect(room_id):
 
@@ -240,7 +242,7 @@ def connect(room_id):
                 }
             ]
         }), 400
-    if target_room.connected_users.count() >= app.config['MAX_USERS_PER_ROOM']:
+    if target_room.connected_users.count() >= get_settings('GAME')['MAX_PLAYERS'][env]:
         return jsonify({
             'errors': [
                 {
@@ -264,7 +266,7 @@ def connect(room_id):
     }), 201
 
 
-@room.route('{base_path}/room/<room_id>/disconnect'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@room.route('{base_path}/room/<room_id>/disconnect'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['POST'])
 @cross_origin()
 def disconnect(room_id):
 
@@ -331,7 +333,7 @@ def disconnect(room_id):
     }), 201
 
 
-@room.route('{base_path}/room/<room_id>'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+@room.route('{base_path}/room/<room_id>'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['GET'])
 @cross_origin()
 def status(room_id):
     room = Room.query.filter_by(id=room_id).first()
@@ -361,7 +363,7 @@ def status(room_id):
     }), 200
 
 
-@room.route('{base_path}/room/<room_id>/ready'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@room.route('{base_path}/room/<room_id>/ready'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['POST'])
 @cross_origin()
 def ready(room_id):
     token = request.json.get('token')
@@ -432,7 +434,7 @@ def ready(room_id):
             'games': games_json
     }), 200
 
-@room.route('{base_path}/room/<room_id>/notready'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@room.route('{base_path}/room/<room_id>/notready'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['POST'])
 @cross_origin()
 def not_ready(room_id):
     token = request.json.get('token')

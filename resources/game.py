@@ -2,16 +2,19 @@
 
 from flask import url_for, request, jsonify, Blueprint
 from flask_cors import cross_origin
-from app import app, db
+from app import db
 from app.models import User, Room, Game, Player, Hand, HandScore, TurnCard
 from datetime import datetime
 import random
+from config import get_settings, get_environment
 
 
 game = Blueprint('game', __name__)
+game_cfg = get_settings('GAME')
+env = get_environment()
 
 
-@game.route('{base_path}/game/<game_id>/score'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+@game.route('{base_path}/game/<game_id>/score'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['GET'])
 @cross_origin()
 def game_score(game_id):
 
@@ -33,7 +36,7 @@ def game_score(game_id):
     }), 200
 
 
-@game.route('{base_path}/game/start'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@game.route('{base_path}/game/start'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['POST'])
 @cross_origin()
 def start():
     token = request.json.get('token')
@@ -59,7 +62,7 @@ def start():
                 }
             ]
         }), 403
-    if not app.config['MIN_PLAYER_TO_START'] <= hosted_room.connected_users.count() <= app.config['MAX_PLAYER_TO_START']:
+    if not game_cfg['MIN_PLAYERS'][env] <= hosted_room.connected_users.count() <= game_cfg['MAX_PLAYERS'][env]:
         return jsonify({
             'errors': [
                 {
@@ -110,7 +113,7 @@ def start():
     }), 200
 
 
-@game.route('{base_path}/game/finish'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@game.route('{base_path}/game/finish'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['POST'])
 @cross_origin()
 def finish():
 
@@ -175,7 +178,7 @@ def finish():
     }), 200
 
 
-@game.route('{base_path}/game/<game_id>/positions'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@game.route('{base_path}/game/<game_id>/positions'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['POST'])
 @cross_origin()
 def positions(game_id):
 
@@ -248,7 +251,7 @@ def positions(game_id):
     }), 200
 
 
-@game.route('{base_path}/game/<game_id>'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@game.route('{base_path}/game/<game_id>'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['POST'])
 @cross_origin()
 def status(game_id):
 

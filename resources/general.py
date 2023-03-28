@@ -1,14 +1,14 @@
 from flask import jsonify, Blueprint, request
 from flask_cors import cross_origin
-from app import app, db
 from app.email import send_feedback
 from app.models import Stats, User
+from config import get_settings, get_environment
 
 
 general = Blueprint('general', __name__)
+env = get_environment()
 
-
-@general.route('{base_path}/rules'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+@general.route('{base_path}/rules'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['GET'])
 @cross_origin()
 def get_rules():
     with open("rules.html", 'r') as f:
@@ -26,7 +26,7 @@ def get_rules():
     return jsonify({'rules': content}), 200
 
 
-@general.route('{base_path}/info'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+@general.route('{base_path}/info'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['GET'])
 @cross_origin()
 def get_info():
     with open("info.html", 'r') as f:
@@ -43,7 +43,7 @@ def get_info():
 
     return jsonify({'info': content}), 200
 
-@general.route('{base_path}/feedback'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@general.route('{base_path}/feedback'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['POST'])
 @cross_origin()
 def feedback():
     message = request.json.get('message')
@@ -58,7 +58,7 @@ def feedback():
             }]
         })
 
-    if len(message)>app.config['MAX_TEXT_SYMBOLS']:
+    if len(message)>get_settings('CONTENT')['MAX_SYMBOLS'][env]:
         return jsonify({
             'errors': [{
                 'field': 'message',
@@ -70,7 +70,7 @@ def feedback():
     return jsonify({'message': 'Feedback message sent'}), 200
 
 
-@general.route('{base_path}/ratings'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+@general.route('{base_path}/ratings'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['GET'])
 @cross_origin()
 def ratings():
     ratings = Stats.query.filter(Stats.games_played>0).all()

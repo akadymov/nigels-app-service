@@ -1,45 +1,54 @@
 # -*- coding: utf-8 -*-
 
-from flask import url_for, request, jsonify, Blueprint, Response
+from flask import url_for, request, jsonify, Blueprint
 from flask_cors import cross_origin
 from app import app, db
 from app.models import User, Token
 from datetime import datetime
 import re
 import os
-from werkzeug.datastructures import MultiDict
 from app.email import send_password_reset_email, send_registration_notification
+from config import get_settings, get_environment
 
 
 user = Blueprint('user', __name__)
 
+auth = get_settings('AUTH')
+regexps = get_settings('REGEXP')
+requirements = get_settings('REQUIREMENTS')
+langs = get_settings('LANGS')
+content = get_settings('CONTENT')
+env = get_environment()
 
-@user.route('{base_path}/user/regexps'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+
+@user.route('{base_path}/user/regexps'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['GET'])
 def get_user_regexps():
     return jsonify({
-        'email_regexp': app.config['EMAIL_REGEXP'],
-        'password_regexp': app.config['PASSWORD_REGEXP'],
-        'password_requirements': app.config['PASSWORD_REQUIREMENTS'],
-        'allowed_lang_codes': app.config['ALLOWED_LANGS']
+        'email_regexp': regexps['EMAIL'][env],
+        'password_regexp': regexps['PASSWORD'][env],
+        'password_requirements': requirements['PASSWORD'][env]
     }), 200
 
 
-@user.route('{base_path}/user'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@user.route('{base_path}/user'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['POST'])
 @cross_origin()
 def create_user():
     username = request.json.get('username')
     email = request.json.get('email')
-    preferred_lang = request.json.get('preferredLang') or app.config['DEFAULT_LANG']
+    preferred_lang = request.json.get('preferredLang') or langs['DEFAULT'][env]
     password = request.json.get('password')
     repeat_password = request.json.get('repeatPassword')
     admin_secret = request.headers.get('ADMIN_SECRET')
     last_seen = datetime.utcnow()
     registered = datetime.utcnow()
     errors = []
-    if app.config.get('REGISTRATION_RESTRICTED') and admin_secret != app.config.get('ADMIN_SECRET'):
+    if auth['REGISTRATION_RESTRICTED'][env] and admin_secret != auth['ADMIN_SECRET'][env]:
         return jsonify({
             'errors': [
-                {'field': 'username', 'message': 'Registration is restricted'}
+                {'field': 'username', 'message': 'Registration is restricted! Please, use feedback form or contact site admins to apply for registration.'},
+                {'field': 'email', 'message': ' '},
+                {'field': 'password', 'message': ' '},
+                {'field': 'repeatPassword', 'message': ' '}
             ]
         }), 400
     if username is None:
@@ -50,20 +59,17 @@ def create_user():
         errors.append({'field': 'email', 'message': 'Required'})
     if password != repeat_password:
         errors.append({'field': 'repeatPassword', 'message': 'Password confirmation is invalid!'})
-    if not re.match(app.config['USERNAME_REGEXP'], username):
+    if not re.match(regexps['USERNAME'][env], username):
         errors.append({'field': 'username', 'message': 'Bad username!'})
-    if not re.match(app.config['EMAIL_REGEXP'], email):
+    if not re.match(regexps['EMAIL'][env], email):
         errors.append({'field': 'email', 'message': 'Bad email!'})
-    if not re.match(app.config['PASSWORD_REGEXP'], password):
-        errors.append({'field': 'password', 'message': app.config['PASSWORD_REQUIREMENTS']})
+    if not re.match(regexps['PASSWORD'][env], password):
+        errors.append({'field': 'password', 'message': requirements['PASSWORD'][env]})
     if User.query.filter_by(username=username.casefold()).count() > 0:
         errors.append(
             {'field': 'username', 'message': 'Username "{username}" is unavailable!'.format(username=username)})
     if User.query.filter_by(email=email).first() is not None:
         errors.append({'field': 'email', 'message': 'User with email {email} already exists!'.format(email=email)})
-    if preferred_lang not in app.config['ALLOWED_LANGS']:
-        errors.append(
-            {'field': 'preferredLang', 'message': 'Language {lang} is not supported!'.format(lang=preferred_lang)})
     if errors:
         return jsonify({
             'errors': errors
@@ -92,7 +98,7 @@ def create_user():
         {'Location': url_for('user.get_user', username=username, _external=True)}
 
 
-@user.route('{base_path}/user/<username>'.format(base_path=app.config['API_BASE_PATH']), methods=['GET'])
+@user.route('{base_path}/user/<username>'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['GET'])
 def get_user(username):
     username = username.casefold()
     user = User.query.filter_by(username=username).first()
@@ -117,7 +123,7 @@ def get_user(username):
     }), 200
 
 
-@user.route('{base_path}/user/token'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@user.route('{base_path}/user/token'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['POST'])
 @cross_origin()
 def post_token():
     username = request.json.get('username').casefold()
@@ -134,12 +140,12 @@ def post_token():
         token = user.generate_auth_token()
         return jsonify({
             'token': token,
-            'expiresIn': app.config['TOKEN_LIFETIME'],
+            'expiresIn': auth['TOKEN_LIFETIME'][env],
             'connectedRoomId': user.get_connected_room_id()
         }), 201
 
 
-@user.route('{base_path}/user/<username>'.format(base_path=app.config['API_BASE_PATH']), methods=['PUT'])
+@user.route('{base_path}/user/<username>'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['PUT'])
 @cross_origin()
 def edit_user(username):
 
@@ -174,20 +180,17 @@ def edit_user(username):
         }), 401
 
     email = request.json.get('email')
-    preferred_lang = request.json.get('preferredLang') or app.config['DEFAULT_LANG']
+    preferred_lang = request.json.get('preferredLang') or langs['DEFAULT'][env]
     about_me = request.json.get('aboutMe')
     errors = []
-    if not re.match(app.config['EMAIL_REGEXP'], email):
+    if not re.match(regexps['EMAIL'][env], email):
         errors.append({'field': 'email', 'message': 'Bad email!'})
     email_user = User.query.filter_by(email=email).first()
     if email_user is not None and email_user != modified_user:
         errors.append({'field': 'email', 'message': 'User with email {email} already exists!'.format(email=email)})
-    if preferred_lang not in app.config['ALLOWED_LANGS']:
+    if len(about_me) >= content['MAX_SYMBOLS'][env]:
         errors.append(
-            {'field': 'preferredLang', 'message': 'Language {lang} is not supported!'.format(lang=preferred_lang)})
-    if len(about_me) >= app.config['MAX_TEXT_SYMBOLS']:
-        errors.append(
-            {'field': 'aboutMe', 'message': 'About me section must be {max_symbols} symbols long'.format(max_symbols=app.config['MAX_TEXT_SYMBOLS'])}
+            {'field': 'aboutMe', 'message': 'About me section must be {max_symbols} symbols long'.format(max_symbols=content['MAX_SYMBOLS'][env])}
         )
 
     if errors:
@@ -207,11 +210,13 @@ def edit_user(username):
         'preferredLang': modified_user.preferred_language,
         'registered': modified_user.registered,
         'lastSeen': modified_user.last_seen,
-        'aboutMe': modified_user.about_me
+        'aboutMe': modified_user.about_me,
+        'connectedRoomId': modified_user.get_connected_room_id(),
+        'stats': modified_user.get_stats()
     }), 200
 
 
-@user.route('{base_path}/user/password/recover'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@user.route('{base_path}/user/password/recover'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['POST'])
 @cross_origin()
 def send_password_recovery():
 
@@ -252,7 +257,7 @@ def send_password_recovery():
     return jsonify('Password recovery link is sent!'), 200
 
 
-@user.route('{base_path}/user/password/reset'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@user.route('{base_path}/user/password/reset'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['POST'])
 @cross_origin()
 def reset_password():
 
@@ -302,10 +307,10 @@ def reset_password():
             'field': 'repeatPassword',
             'message': 'Password confirmation does not match!'
         })
-    if not re.match(app.config['PASSWORD_REGEXP'], new_password):
+    if not re.match(regexps['PASSWORD'][env], new_password):
         errors.append({
             'field': 'newPassword',
-            'message': app.config['PASSWORD_REQUIREMENTS']
+            'message': requirements['PASSWORD'][env]
         })
 
     if errors:
@@ -338,7 +343,7 @@ def reset_password_form(token):
     return 'Here comes reset password form (under construction)!'
 
 
-@user.route('{base_path}/user/password/new'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@user.route('{base_path}/user/password/new'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['POST'])
 @cross_origin()
 def new_password():
     current_password = request.json.get('currentPassword')
@@ -380,10 +385,10 @@ def new_password():
             'field': 'currentPassword',
             'message': 'Incorrect current password!'
         })
-    if not re.match(app.config['PASSWORD_REGEXP'], new_password):
+    if not re.match(regexps['PASSWORD'][env], new_password):
         errors.append({
             'field': 'newPassword',
-            'message': app.config['PASSWORD_REQUIREMENTS']
+            'message': requirements['PASSWORD'][env]
         })
 
     if errors:
@@ -400,7 +405,7 @@ def new_password():
         return jsonify('New password is saved!'), 200
 
 
-@user.route('{base_path}/user/<username>/profilepic'.format(base_path=app.config['API_BASE_PATH']), methods=['POST'])
+@user.route('{base_path}/user/<username>/profilepic'.format(base_path=get_settings('API_BASE_PATH')[env]), methods=['POST'])
 @cross_origin()
 def upload_profile_pic(username):
     token = request.headers.get('Token')
@@ -454,11 +459,11 @@ def upload_profile_pic(username):
             ]
         }), 403
     file_extension = file.filename.rsplit('.', 1)[1].lower()
-    if file_extension not in app.config['CONTENT_ALLOWED_FORMATS']:
+    if file_extension not in content['ALLOWED_FORMATS'][env].split(','):
         return jsonify({
             'errors': [
                 {
-                    'message': 'Only {allowed_formats} files allowed!'.format(allowed_formats = app.config['CONTENT_ALLOWED_FORMATS'])
+                    'message': 'Only {allowed_formats} files allowed!'.format(allowed_formats = content['ALLOWED_FORMATS'][env])
                 }
             ]
         }), 403
@@ -470,7 +475,7 @@ def upload_profile_pic(username):
                 }
             ]
         }), 403
-    if file.content_length > app.config['MAX_CONTENT_SIZE']:
+    if file.content_length > content['MAX_SIZE'][env]:
         return jsonify({
             'errors': [
                 {
@@ -480,7 +485,7 @@ def upload_profile_pic(username):
         }), 403'''
     filename = str(modified_user.username) + '.' + file_extension
     try:
-        file.save(os.path.join(app.config['UPLOAD_FOLDER'], filename))
+        file.save(os.path.join(content['UPLOAD_FOLDER'][env], filename))
     except Exception:
         return jsonify({
             'errors': [
